@@ -183,6 +183,47 @@
   const mainIds = () => (S.top.length ? S.top : S.why);
   const plural = (n, one, few, many) => { const m10 = n % 10; const m100 = n % 100; if (m10 === 1 && m100 !== 11) return one; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few; return many; };
 
+  /* ---------- Шаги практики: анимации-инструкции (что именно сделать) ---------- */
+  const AV_PLANE = '<svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>';
+  const AV_MOON = '<svg viewBox="0 0 24 24"><path d="M20 13.5A8 8 0 1 1 10.5 4a6.3 6.3 0 0 0 9.5 9.5z"/></svg>';
+  const AV_BELL = '<svg viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+  const AV = {
+    // Место: авиарежим и «не беспокоить» включаются, телефон переворачивается экраном вниз
+    plane: () => `<div class="av av-plane" aria-hidden="true">
+        <div class="av-phone"><div class="av-phone__in">
+          <div class="av-phone__face">
+            <div class="av-phone__bar"><span>7:00</span><span class="av-phone__air">${AV_PLANE}</span></div>
+            <div class="av-row"><span class="av-ico">${AV_PLANE}</span><span class="av-row__t">Авиарежим</span><span class="av-tog"><i></i></span></div>
+            <div class="av-row"><span class="av-ico">${AV_MOON}</span><span class="av-row__t">Не беспокоить</span><span class="av-tog av-tog--2"><i></i></span></div>
+          </div>
+          <div class="av-phone__back"><i></i></div>
+        </div></div>
+        <div class="av-cap"><span class="av-cap1">Авиарежим</span><span class="av-cap2">Экраном вниз</span></div>
+      </div>`,
+    // Вход: три глубоких вдоха по кругу, потом дыхание отпускаем
+    breath: () => `<div class="av av-breath" aria-hidden="true">
+        <div class="av-orb"><i></i></div>
+        <div class="av-stack av-bw"><span class="av-in">Вдох</span><span class="av-out">Выдох</span><span class="av-rest">Теперь дыши как обычно</span></div>
+        <div class="av-stack av-bn"><span class="av-n1">1 из 3</span><span class="av-n2">2 из 3</span><span class="av-n3">3 из 3</span></div>
+      </div>`,
+    // Звоночек: звенит → посиди пять секунд → медленно открой глаза
+    bell: () => `<div class="av av-bell" aria-hidden="true">
+        <div class="av-stack av-bc">
+          <span class="av-bellbox"><i class="av-wave"></i><i class="av-wave av-wave--2"></i>${AV_BELL}</span>
+          <span class="av-cd"><b>5</b><b>4</b><b>3</b><b>2</b><b>1</b></span>
+          <span class="av-eye"><svg viewBox="0 0 120 60"><path d="M8 30Q60-12 112 30 60 72 8 30z"/><circle cx="60" cy="30" r="13"/></svg></span>
+        </div>
+        <div class="av-stack av-bt"><span class="av-t1">Звоночек</span><span class="av-t2">Не вскакивай. Посиди</span><span class="av-t3">Медленно открой глаза</span></div>
+      </div>`,
+  };
+  // Картинка шага: анимация, фото (с подсказками-точками) или заглушка
+  function stepVisual(s) {
+    if (s.anim && AV[s.anim]) return AV[s.anim]();
+    if (!s.img) return daisyOutline('hstep__daisy');
+    const dots = (s.dots || []).map((p, i) => `<span class="av-dot" style="left:${p.x}%;top:${p.y}%;animation-delay:${i * 1.2}s"></span><span class="av-dlabel" style="left:${p.x + 5}%;top:${p.y}%">${p.t}</span>`).join('');
+    return `<img src="${s.img}" alt="${esc(s.alt)}" loading="lazy">${dots}`;
+  }
+
   /* ---------- Экраны ---------- */
   // Видео открывается в свой день или сразу, как посмотрел предыдущее — можно пройти курс быстрее
   const isLocked = (v, day) => v.day > day && v.id > 0 && !S.watched.includes(v.id - 1);
@@ -217,7 +258,7 @@
     const firstTime = day === 1 && !S.watched.includes(1) && !S.sessions.length;
 
     const step = (s, i) => `<li class="hstep">
-        <div class="hstep__img">${s.img ? `<img src="${s.img}" alt="${esc(s.alt)}" loading="lazy">` : `${daisyOutline('hstep__daisy')}<span class="hstep__alt">${esc(s.alt)}</span>`}<b class="hstep__n num">${i + 1}</b></div>
+        <div class="hstep__img${s.img && !s.anim ? ' has-img' : ''}">${stepVisual(s)}<b class="hstep__n num">${i + 1}</b></div>
         <div class="hstep__t">${s.t}</div>
         <p class="hstep__do">${s.do}</p>
         <p class="hstep__why"><span>Зачем:</span> ${s.why}</p>
@@ -311,7 +352,7 @@
     return `
       ${qbar(i + 1, n)}
       <span class="eyebrow"><span class="dot"></span>Перед первой практикой · шаг ${i + 1} из ${n}</span>
-      <div class="howstep__img${s.img ? ' has-img' : ''}">${s.img ? `<img src="${s.img}" alt="${esc(s.alt)}">` : daisyOutline('hstep__daisy')}<b class="hstep__n num">${i + 1}</b></div>
+      <div class="howstep__img${s.img && !s.anim ? ' has-img' : ''}">${stepVisual(s)}<b class="hstep__n num">${i + 1}</b></div>
       <h1 class="title">${s.t}</h1>
       <p class="lead" style="margin-bottom:10px">${s.do}</p>
       <p class="sub"><span class="muted">Зачем:</span> ${s.why}</p>
