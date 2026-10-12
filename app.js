@@ -27,7 +27,7 @@
 
   /* ---------- Хранилище: Telegram CloudStorage, вне Telegram — localStorage ---------- */
   const useCloud = inTelegram && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9');
-  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset'];
+  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur'];
   const Store = {
     pending() { try { return JSON.parse(localStorage.getItem('t__pending') || '[]'); } catch (e) { return []; } },
     setPending(list) { try { localStorage.setItem('t__pending', JSON.stringify([...new Set(list)])); } catch (e) { /* нет хранилища */ } },
@@ -90,8 +90,8 @@
   };
 
   /* ---------- Состояние ---------- */
-  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '' };
-  const view = { tab: 'today', sub: null, practice: { step: 'setup', min: 10, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
+  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null };
+  const view = { tab: 'today', sub: null, practice: { step: 'setup', sec: 600, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false, pick: false };
   let lastPetals = 0;
 
   /* ---------- Даты ---------- */
@@ -285,7 +285,7 @@
           <span class="eyebrow" style="margin:0"><span class="dot"></span>Практика</span>
           ${done ? `<span class="chip chip--accent">${I.check} сегодня сделано</span>` : ''}
         </div>
-        <div class="practice-card__min num">${view.practice.min}<small>минут в тишине</small></div>
+        <div class="practice-card__min num">${durBig(view.practice.sec)}</div>
         ${why ? `<div><div class="why-now__k">Ты садишься, чтобы</div><div class="why-now__t">${esc(why.t.toLowerCase())}</div></div>` : ''}
         ${btn(done ? 'Сесть ещё раз' : 'Начать практику', 'data-start="1"', `btn--full${S.top.length ? ' btn--accent' : ''}`)}
         ${firstTime ? '<p class="sub" style="margin:-6px 2px 0">Первый раз? Сначала посмотри видео 0 и 1 ниже: там всё о том, как сесть и что делать.</p>' : ''}
@@ -370,7 +370,14 @@
         <div><span class="eyebrow"><span class="dot"></span>Практика</span>
         <h1 class="title">Тишина и дыхание</h1>
         <p class="lead" style="margin:0 auto;max-width:340px">Дыши как обычно и наблюдай. Ушёл в мысли — заметил и вернулся. В конце прозвенит мягкий звоночек.</p></div>
-        <div class="dur" role="group" aria-label="Длительность">${[5, 10, 15, 20].map((m) => `<button class="num" data-min="${m}" aria-pressed="${p.min === m}">${m} мин</button>`).join('')}</div>
+        <div class="dur-wrap">
+          <div class="dur" role="group" aria-label="Длительность">${PRESETS.map((m) => `<button class="num" data-min="${m}" aria-pressed="${!view.pick && p.sec === m * 60}">${m} мин</button>`).join('')}<button class="num" data-pick="1" id="dur-own" aria-pressed="${view.pick || !PRESETS.includes(p.sec / 60)}">${view.pick || !PRESETS.includes(p.sec / 60) ? fmtDur(p.sec) : 'Своё'}</button></div>
+          ${view.pick ? `<div class="picker" aria-label="Своё время">
+            <div class="picker__band"></div>
+            <div class="picker__col"><div class="wheel" data-wheel="m" tabindex="0" aria-label="Минуты">${Array.from({ length: 61 }, (_, i) => `<div class="wheel__i num">${i}</div>`).join('')}</div><span class="picker__u">мин</span></div>
+            <div class="picker__col"><div class="wheel" data-wheel="s" tabindex="0" aria-label="Секунды">${Array.from({ length: 60 }, (_, i) => `<div class="wheel__i num">${i}</div>`).join('')}</div><span class="picker__u">сек</span></div>
+          </div>` : ''}
+        </div>
         ${why ? `<p class="sub" style="max-width:320px;margin:0 auto">Ты садишься, чтобы: <b style="color:var(--ink)">${why.t.toLowerCase()}</b></p>` : ''}
         <div>${btn('Начать', 'data-step="before"', 'btn--accent')}</div>
         <p class="sub" style="max-width:320px;margin:0 auto">Можно включить авиарежим — таймер и звоночек работают без сети.</p>
@@ -606,6 +613,7 @@
     else html = { today: screenToday, course: screenCourse, practice: screenPractice, answers: screenAnswers, path: screenPath }[view.tab]();
     $app.innerHTML = `<section class="screen">${html}</section>`;
     if (scrollTop) window.scrollTo(0, 0);
+    initWheels();
     const running = view.tab === 'practice' && !view.sub && ['run', 'bell'].includes(view.practice.step);
     const howto = view.tab === 'practice' && !view.sub && ['setup', 'before'].includes(view.practice.step) && !S.sessions.length && !view.howDone;
     $dock.classList.toggle('is-hidden', running || howto || !!view.sub);
@@ -613,12 +621,44 @@
     setBack(!!view.sub);
   }
 
+  /* ---------- Длительность практики: 5/10/15/20 мин или своё время барабанами (мин + сек) ---------- */
+  const PRESETS = [5, 10, 15, 20];
+  const WHEEL_ROW = 40;
+  const fmtDur = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  const durBig = (sec) => (sec % 60 ? `${fmtDur(sec)}<small>в тишине</small>` : `${sec / 60}<small>${plural(sec / 60, 'минута', 'минуты', 'минут')} в тишине</small>`);
+  function setDur(sec) { view.practice.sec = sec; S.dur = sec; Store.save('dur', sec); }
+  function initWheels() {
+    const ws = document.querySelectorAll('[data-wheel]');
+    if (!ws.length) return;
+    const val = { m: Math.floor(view.practice.sec / 60), s: view.practice.sec % 60 };
+    ws.forEach((w) => {
+      const k = w.dataset.wheel; let last = val[k]; let t = null;
+      const mark = (i) => w.querySelectorAll('.wheel__i').forEach((el, j) => el.classList.toggle('is-on', j === i));
+      w.scrollTop = val[k] * WHEEL_ROW; mark(val[k]);
+      w.addEventListener('scroll', () => {
+        const i = Math.max(0, Math.min(w.children.length - 1, Math.round(w.scrollTop / WHEEL_ROW)));
+        if (i !== last) { last = i; mark(i); haptic.tap(); }
+        // время применяется сразу — можно нажать «Начать», не дожидаясь остановки барабана
+        val[k] = i;
+        view.practice.sec = Math.max(30, val.m * 60 + val.s);
+        const own = document.getElementById('dur-own'); if (own) own.textContent = fmtDur(view.practice.sec);
+        clearTimeout(t);
+        t = setTimeout(() => {
+          if (val.m * 60 + val.s < 30) { val.m = 0; val.s = 30; const sw = document.querySelector('[data-wheel="s"]'); if (sw) sw.scrollTo({ top: 30 * WHEEL_ROW, behavior: 'smooth' }); }
+          setDur(view.practice.sec);
+        }, 140);
+      }, { passive: true });
+      // стрелки на клавиатуре — для доступности
+      w.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); w.scrollBy({ top: e.key === 'ArrowDown' ? WHEEL_ROW : -WHEEL_ROW, behavior: 'smooth' }); } });
+    });
+  }
+
   /* ---------- Практика: таймер ---------- */
   let ticker = null;
   function startRun() {
     const p = view.practice;
     unlockAudio(); bell();
-    p.startAt = Date.now(); p.endAt = p.startAt + p.min * 60000; p.step = 'run';
+    p.startAt = Date.now(); p.endAt = p.startAt + p.sec * 1000; p.step = 'run';
     if (inTelegram) { try { tg.enableClosingConfirmation(); } catch (e) { /* старый клиент */ } }
     render(true);
     clearInterval(ticker);
@@ -656,7 +696,8 @@
     if (d.howback) { haptic.tap(); view.howI = Math.max(0, view.howI - 1); return render(true); }
     if (d.howskip) { haptic.tap(); view.howDone = true; return render(true); }
     if (d.url) { haptic.tap(); return open(d.url); }
-    if (d.min) { haptic.tap(); view.practice.min = Number(d.min); return render(); }
+    if (d.min) { haptic.tap(); view.pick = false; setDur(Number(d.min) * 60); return render(); }
+    if (d.pick) { haptic.tap(); view.pick = !view.pick; return render(); }
     if (d.step) {
       haptic.soft();
       if (d.step === 'after' && ['run', 'bell'].includes(view.practice.step)) stopRun();
@@ -778,7 +819,8 @@
     window.addEventListener('online', () => { Store.flush(); Sync.flush(); });
     Sync.push('open', {}, `open-${dayKey(Date.now())}`);
     const qs = new URLSearchParams(location.search);
-    if ([5, 10, 15, 20].includes(Number(qs.get('min')))) view.practice.min = Number(qs.get('min'));
+    if (Number(S.dur) >= 10) view.practice.sec = Number(S.dur);
+    if ([5, 10, 15, 20].includes(Number(qs.get('min')))) view.practice.sec = Number(qs.get('min')) * 60;
     const startTab = qs.get('tab') || (inTelegram && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || 'today';
     if (startTab === 'why') { view.sub = { name: 'why' }; } else if (['today', 'course', 'practice', 'answers', 'path'].includes(startTab)) view.tab = startTab;
     render(true);
