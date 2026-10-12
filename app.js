@@ -91,7 +91,7 @@
 
   /* ---------- Состояние ---------- */
   const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null };
-  const view = { tab: 'today', sub: null, practice: { step: 'setup', sec: 600, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false, pick: false };
+  const view = { tab: 'today', sub: null, practice: { step: 'setup', sec: 600, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
   let lastPetals = 0;
 
   /* ---------- Даты ---------- */
@@ -144,20 +144,30 @@
   /* ---------- Звоночек: мягкий синтез, без файлов ---------- */
   let audio = null;
   function unlockAudio() { try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (e) { audio = null; } }
-  function bell() {
-    if (!audio) return;
-    const now = audio.currentTime;
+  // Мягкий звоночек — как поющая чаша: плавная атака, тёплый тон, долгое затухание, лёгкое «дыхание» звука.
+  // start — один тихий удар; end — два удара, второй тише: мягко выводит из практики.
+  function strike(at, vol) {
+    const f0 = 392;
     const out = audio.createGain();
-    out.gain.setValueAtTime(0.0001, now);
-    out.gain.exponentialRampToValueAtTime(0.42, now + 0.015);
-    out.gain.exponentialRampToValueAtTime(0.0001, now + 7);
-    out.connect(audio.destination);
-    [[392, 1], [392 * 2.76, 0.32], [392 * 5.4, 0.1], [392 * 8.93, 0.035]].forEach(([f, a], i) => {
-      const o = audio.createOscillator(); const g = audio.createGain();
-      o.type = 'sine'; o.frequency.value = f; g.gain.value = a;
-      o.detune.value = i ? 3 : 0;
-      o.connect(g).connect(out); o.start(now); o.stop(now + 7.2);
+    const lp = audio.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.3;
+    out.gain.value = vol;
+    out.connect(lp).connect(audio.destination);
+    // [множитель частоты, громкость, время затухания]: высокие обертоны гаснут быстрее — звук смягчается к концу
+    [[1, 1, 13], [2.0, 0.16, 5], [2.76, 0.12, 3.5], [5.4, 0.03, 1.6]].forEach(([k, a, dec]) => {
+      [[-0.3, 0.7], [0.3, 0.3]].forEach(([beat, share]) => { // два близких тона разной силы — мягкое «дыхание» звука, как у чаши
+        const o = audio.createOscillator(); const g = audio.createGain();
+        o.type = 'sine'; o.frequency.value = f0 * k + beat;
+        g.gain.setValueAtTime(0.0001, at);
+        g.gain.exponentialRampToValueAtTime(a * share, at + 0.09);
+        g.gain.exponentialRampToValueAtTime(0.0001, at + dec);
+        o.connect(g).connect(out); o.start(at); o.stop(at + dec + 0.1);
+      });
     });
+  }
+  function bell(kind = 'start') {
+    if (!audio) return;
+    const now = audio.currentTime + 0.02;
+    if (kind === 'end') { strike(now, 0.32); strike(now + 3.2, 0.2); } else strike(now, 0.26);
   }
 
   /* ---------- Ромашка внимания ---------- */
@@ -371,12 +381,13 @@
         <h1 class="title">Тишина и дыхание</h1>
         <p class="lead" style="margin:0 auto;max-width:340px">Дыши как обычно и наблюдай. Ушёл в мысли — заметил и вернулся. В конце прозвенит мягкий звоночек.</p></div>
         <div class="dur-wrap">
-          <div class="dur" role="group" aria-label="Длительность">${PRESETS.map((m) => `<button class="num" data-min="${m}" aria-pressed="${!view.pick && p.sec === m * 60}">${m} мин</button>`).join('')}<button class="num" data-pick="1" id="dur-own" aria-pressed="${view.pick || !PRESETS.includes(p.sec / 60)}">${view.pick || !PRESETS.includes(p.sec / 60) ? fmtDur(p.sec) : 'Своё'}</button></div>
-          ${view.pick ? `<div class="picker" aria-label="Своё время">
+          <div class="dur" role="group" aria-label="Длительность"><span class="dur__pill" aria-hidden="true"></span>${PRESETS.map((m) => `<button class="num" data-min="${m}" aria-pressed="${p.sec === m * 60}">${m} мин</button>`).join('')}</div>
+          <div class="picker" aria-label="Своё время: минуты и секунды">
             <div class="picker__band"></div>
             <div class="picker__col"><div class="wheel" data-wheel="m" tabindex="0" aria-label="Минуты">${Array.from({ length: 61 }, (_, i) => `<div class="wheel__i num">${i}</div>`).join('')}</div><span class="picker__u">мин</span></div>
             <div class="picker__col"><div class="wheel" data-wheel="s" tabindex="0" aria-label="Секунды">${Array.from({ length: 60 }, (_, i) => `<div class="wheel__i num">${i}</div>`).join('')}</div><span class="picker__u">сек</span></div>
-          </div>` : ''}
+          </div>
+          <button class="ghost bell-try" data-belltry="1">${AV_BELL}<span>Послушать звоночек</span></button>
         </div>
         ${why ? `<p class="sub" style="max-width:320px;margin:0 auto">Ты садишься, чтобы: <b style="color:var(--ink)">${why.t.toLowerCase()}</b></p>` : ''}
         <div>${btn('Начать', 'data-step="before"', 'btn--accent')}</div>
@@ -627,37 +638,58 @@
   const fmtDur = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   const durBig = (sec) => (sec % 60 ? `${fmtDur(sec)}<small>в тишине</small>` : `${sec / 60}<small>${plural(sec / 60, 'минута', 'минуты', 'минут')} в тишине</small>`);
   function setDur(sec) { view.practice.sec = sec; S.dur = sec; Store.save('dur', sec); }
+  let wheelLock = 0; // пока барабаны докручиваются к выбранному пресету — время не пересчитываем
+  const wheelVal = (w) => Math.max(0, Math.min(w.children.length - 1, Math.round(w.scrollTop / WHEEL_ROW)));
+  function syncPresets(instant) {
+    const dur = document.querySelector('.dur'); if (!dur) return;
+    let on = null;
+    dur.querySelectorAll('[data-min]').forEach((b) => { const hit = Number(b.dataset.min) * 60 === view.practice.sec; b.setAttribute('aria-pressed', hit); if (hit) on = b; });
+    const pill = dur.querySelector('.dur__pill');
+    if (instant) pill.style.transition = 'none';
+    if (on) { pill.style.width = `${on.offsetWidth}px`; pill.style.transform = `translateX(${on.offsetLeft}px)`; pill.style.opacity = 1; } else pill.style.opacity = 0;
+    if (instant) { void pill.offsetWidth; pill.style.transition = ''; }
+  }
+  function wheelsTo(sec) {
+    const m = document.querySelector('[data-wheel="m"]'); const s = document.querySelector('[data-wheel="s"]');
+    if (!m || !s) return;
+    wheelLock = Date.now() + 900;
+    m.scrollTo({ top: Math.floor(sec / 60) * WHEEL_ROW, behavior: 'smooth' });
+    s.scrollTo({ top: (sec % 60) * WHEEL_ROW, behavior: 'smooth' });
+  }
   function initWheels() {
     const ws = document.querySelectorAll('[data-wheel]');
     if (!ws.length) return;
-    const val = { m: Math.floor(view.practice.sec / 60), s: view.practice.sec % 60 };
+    const [mw, sw] = [document.querySelector('[data-wheel="m"]'), document.querySelector('[data-wheel="s"]')];
+    let t = null;
     ws.forEach((w) => {
-      const k = w.dataset.wheel; let last = val[k]; let t = null;
+      let last = -1;
       const mark = (i) => w.querySelectorAll('.wheel__i').forEach((el, j) => el.classList.toggle('is-on', j === i));
-      w.scrollTop = val[k] * WHEEL_ROW; mark(val[k]);
+      w.scrollTop = (w === mw ? Math.floor(view.practice.sec / 60) : view.practice.sec % 60) * WHEEL_ROW;
+      last = wheelVal(w); mark(last);
       w.addEventListener('scroll', () => {
-        const i = Math.max(0, Math.min(w.children.length - 1, Math.round(w.scrollTop / WHEEL_ROW)));
+        const i = wheelVal(w);
         if (i !== last) { last = i; mark(i); haptic.tap(); }
+        if (Date.now() < wheelLock) return;
         // время применяется сразу — можно нажать «Начать», не дожидаясь остановки барабана
-        val[k] = i;
-        view.practice.sec = Math.max(30, val.m * 60 + val.s);
-        const own = document.getElementById('dur-own'); if (own) own.textContent = fmtDur(view.practice.sec);
+        view.practice.sec = Math.max(30, wheelVal(mw) * 60 + wheelVal(sw));
+        syncPresets();
         clearTimeout(t);
         t = setTimeout(() => {
-          if (val.m * 60 + val.s < 30) { val.m = 0; val.s = 30; const sw = document.querySelector('[data-wheel="s"]'); if (sw) sw.scrollTo({ top: 30 * WHEEL_ROW, behavior: 'smooth' }); }
+          if (wheelVal(mw) * 60 + wheelVal(sw) < 30) sw.scrollTo({ top: 30 * WHEEL_ROW, behavior: 'smooth' });
           setDur(view.practice.sec);
-        }, 140);
+        }, 160);
       }, { passive: true });
       // стрелки на клавиатуре — для доступности
       w.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); w.scrollBy({ top: e.key === 'ArrowDown' ? WHEEL_ROW : -WHEEL_ROW, behavior: 'smooth' }); } });
     });
+    syncPresets(true);
   }
 
   /* ---------- Практика: таймер ---------- */
   let ticker = null;
   function startRun() {
     const p = view.practice;
-    unlockAudio(); bell();
+    unlockAudio(); bell('start');
     p.startAt = Date.now(); p.endAt = p.startAt + p.sec * 1000; p.step = 'run';
     if (inTelegram) { try { tg.enableClosingConfirmation(); } catch (e) { /* старый клиент */ } }
     render(true);
@@ -665,7 +697,7 @@
     ticker = setInterval(() => {
       const left = p.endAt - Date.now();
       const $c = document.getElementById('clock');
-      if (p.step === 'run' && left <= 0) { p.step = 'bell'; bell(); haptic.ok(); render(); return; }
+      if (p.step === 'run' && left <= 0) { p.step = 'bell'; bell('end'); haptic.ok(); render(); return; }
       if ($c) $c.textContent = p.step === 'bell' ? `+${fmt(-left)}` : fmt(Math.max(0, left));
     }, 250);
   }
@@ -696,8 +728,8 @@
     if (d.howback) { haptic.tap(); view.howI = Math.max(0, view.howI - 1); return render(true); }
     if (d.howskip) { haptic.tap(); view.howDone = true; return render(true); }
     if (d.url) { haptic.tap(); return open(d.url); }
-    if (d.min) { haptic.tap(); view.pick = false; setDur(Number(d.min) * 60); return render(); }
-    if (d.pick) { haptic.tap(); view.pick = !view.pick; return render(); }
+    if (d.min) { haptic.soft(); setDur(Number(d.min) * 60); if (document.querySelector('[data-wheel]')) { syncPresets(); wheelsTo(view.practice.sec); return; } return render(); }
+    if (d.belltry) { haptic.soft(); unlockAudio(); bell('end'); return; }
     if (d.step) {
       haptic.soft();
       if (d.step === 'after' && ['run', 'bell'].includes(view.practice.step)) stopRun();
