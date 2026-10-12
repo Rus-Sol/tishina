@@ -482,3 +482,31 @@ input, textarea { font: inherit; color: inherit; }
 .item--top.is-on .heart svg { fill: var(--accent); stroke: color-mix(in srgb, var(--accent) 80%, var(--ink)); }
 .counter__dots i.is-on { background: var(--accent); }
 .why-chosen li svg { fill: var(--accent); }
+
+/* Подсветка «Моё зачем» на главной, пока тест не пройден */
+.shell--hl { background: var(--accent-soft); }
+.screen > .shell--hl { animation: rise 420ms var(--ease-out) forwards, hl-glow 2.8s ease-in-out 500ms infinite; }
+@keyframes hl-glow {
+  0%, 100% { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 60%, transparent), 0 0 0 0 rgba(242, 190, 54, 0); }
+  50% { box-shadow: inset 0 0 0 1.5px var(--accent), 0 0 0 6px rgba(242, 190, 54, 0.16); }
+}
+@media (prefers-reduced-motion: reduce) { .screen > .shell--hl { animation: rise 420ms var(--ease-out) forwards; box-shadow: inset 0 0 0 1.5px var(--accent); } }
+
+/* Тест и шаги практики: полоска прогресса */
+.qbar { display: flex; gap: 4px; margin: 2px 0 16px; }
+.qbar i { flex: 1; height: 4px; border-radius: 2px; background: var(--line); transition: background-color 240ms ease; }
+.qbar i.is-on { background: var(--accent); }
+
+/* Шаги перед первой практикой: один шаг — один экран */
+.howstep__img {
+  position: relative; width: min(100%, 46vh); aspect-ratio: 1; margin: 12px auto 0; border-radius: 24px; overflow: hidden;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(120% 90% at 85% 10%, var(--accent-soft), transparent 60%),
+    linear-gradient(160deg, color-mix(in srgb, var(--ink) 4%, var(--surface)), color-mix(in srgb, var(--ink) 10%, var(--surface)));
+}
+.howstep__img.has-img, .hstep__img:has(img) { background: #E3D9CD; }
+.howstep__img img, .hstep__img img { width: 100%; height: 100%; object-fit: contain; }
+.howstep__img .hstep__daisy { width: 260px; height: 260px; right: -50px; bottom: -60px; }
+.howstep__nav { display: flex; justify-content: space-between; margin-top: 8px; }
+.why-chosen li .item__p { font-weight: 400; }
