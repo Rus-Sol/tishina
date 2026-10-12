@@ -605,3 +605,19 @@ input, textarea { font: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .av *, .av-dot { animation-duration: 0s !important; animation-iteration-count: 1 !important; }
 }
+
+/* ---------- Длительность: «Своё» — барабаны минут и секунд, как в таймере iPhone ---------- */
+.dur-wrap { display: grid; gap: 14px; justify-items: center; }
+.dur { flex-wrap: wrap; justify-content: center; }
+.picker { position: relative; display: flex; justify-content: center; gap: 8px; width: min(100%, 300px); height: 200px; padding: 0 12px; border-radius: 24px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--shell-ring); overflow: hidden; }
+.picker__band { position: absolute; left: 10px; right: 10px; top: 80px; height: 40px; border-radius: 12px; background: var(--surface); box-shadow: var(--highlight), var(--shadow); pointer-events: none; }
+.picker__col { position: relative; display: flex; align-items: center; }
+.wheel {
+  position: relative; width: 64px; height: 200px; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain;
+  padding: 80px 0; scrollbar-width: none; outline: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent); mask-image: linear-gradient(transparent, #000 32%, #000 68%, transparent);
+}
+.wheel::-webkit-scrollbar { display: none; }
+.wheel__i { height: 40px; display: grid; place-items: center; scroll-snap-align: center; font-size: 22px; font-weight: 500; color: var(--ink-3); transition: color 160ms ease, transform 160ms var(--ease-out); }
+.wheel__i.is-on { color: var(--ink); font-weight: 600; transform: scale(1.08); }
+.picker__u { position: relative; font-size: 15px; font-weight: 600; color: var(--ink-2); margin-left: 2px; width: 34px; }
