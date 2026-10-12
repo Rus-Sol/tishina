@@ -505,8 +505,103 @@ input, textarea { font: inherit; color: inherit; }
     radial-gradient(120% 90% at 85% 10%, var(--accent-soft), transparent 60%),
     linear-gradient(160deg, color-mix(in srgb, var(--ink) 4%, var(--surface)), color-mix(in srgb, var(--ink) 10%, var(--surface)));
 }
-.howstep__img.has-img, .hstep__img:has(img) { background: #E3D9CD; }
-.howstep__img img, .hstep__img img { width: 100%; height: 100%; object-fit: contain; }
+.howstep__img.has-img, .hstep__img.has-img { background: #E3D9CD; }
+.howstep__img img, .hstep__img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .howstep__img .hstep__daisy { width: 260px; height: 260px; right: -50px; bottom: -60px; }
 .howstep__nav { display: flex; justify-content: space-between; margin-top: 8px; }
 .why-chosen li .item__p { font-weight: 400; }
+
+/* ---------- Шаги практики: анимации-инструкции. Размеры — от меньшей стороны рамки (cqmin) ---------- */
+.howstep__img, .hstep__img { container-type: size; }
+.hstep__img { aspect-ratio: 4 / 3; }
+.av { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 4cqmin; color: var(--ink); }
+.av svg { display: block; }
+.av-stack { display: grid; place-items: center; }
+.av-stack > * { grid-area: 1 / 1; }
+
+/* Место: телефон */
+.av-plane { gap: 3cqmin; }
+.av-phone { width: 52cqmin; height: 72cqmin; perspective: 600px; }
+.av-phone__in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; animation: avFlip 8s var(--ease-out) infinite; }
+.av-phone__face, .av-phone__back { position: absolute; inset: 0; border-radius: 6cqmin; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.av-phone__face { background: var(--surface); box-shadow: inset 0 0 0 1.4cqmin var(--ink), var(--shadow); padding: 5cqmin 3.4cqmin; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 2.4cqmin; }
+.av-phone__back { transform: rotateY(180deg); background: #2B2925; box-shadow: var(--shadow); }
+.av-phone__back i { position: absolute; left: 4.5cqmin; top: 4.5cqmin; width: 9cqmin; height: 9cqmin; border-radius: 3cqmin; background: #46423C; box-shadow: inset 0 0 0 1.4cqmin #3A3732; }
+.av-phone__bar { display: flex; justify-content: space-between; align-items: center; font-size: max(8px, 3.4cqmin); font-weight: 600; margin-bottom: 2cqmin; height: 4cqmin; }
+.av-phone__air svg { width: 3.8cqmin; height: 3.8cqmin; fill: var(--ink); opacity: 0; animation: avAir 8s linear infinite; }
+.av-row { display: flex; align-items: center; gap: 1.8cqmin; padding: 2.2cqmin 2cqmin; border-radius: 2.6cqmin; background: color-mix(in srgb, var(--ink) 6%, var(--surface)); font-size: max(8px, 3.3cqmin); font-weight: 600; }
+.av-row__t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.av-ico svg { width: 4.4cqmin; height: 4.4cqmin; fill: var(--ink-2); }
+.av-tog { flex: none; width: 8cqmin; height: 4.6cqmin; border-radius: 99px; background: var(--line); position: relative; animation: avTog 8s linear infinite; }
+.av-tog i { position: absolute; top: 0.6cqmin; left: 0.6cqmin; width: 3.4cqmin; height: 3.4cqmin; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); animation: avKnob 8s var(--ease-out) infinite; }
+.av-tog--2, .av-tog--2 i { animation-delay: 0.7s; }
+.av-cap { display: grid; font-size: max(11px, 4.4cqmin); font-weight: 600; }
+.av-cap > span { grid-area: 1 / 1; text-align: center; }
+.av-cap1 { animation: avCap1 8s linear infinite; }
+.av-cap2 { opacity: 0; animation: avCap2 8s linear infinite; }
+@keyframes avTog { 0%, 14% { background: var(--line); } 18%, 96% { background: var(--accent); } 100% { background: var(--line); } }
+@keyframes avKnob { 0%, 14% { transform: none; } 18%, 96% { transform: translateX(3.4cqmin); } 100% { transform: none; } }
+@keyframes avAir { 0%, 17% { opacity: 0; } 20%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes avFlip { 0%, 46% { transform: none; } 56%, 90% { transform: rotateY(180deg); } 100% { transform: rotateY(360deg); } }
+@keyframes avCap1 { 0%, 46% { opacity: 1; } 50%, 96% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes avCap2 { 0%, 50% { opacity: 0; } 54%, 92% { opacity: 1; } 96%, 100% { opacity: 0; } }
+
+/* Вход: три глубоких вдоха (22 с: 3 × (3 с вдох + 3 с выдох) + 4 с отпустить) */
+.av-breath { gap: 5cqmin; }
+.av-orb { width: 46cqmin; height: 46cqmin; display: grid; place-items: center; }
+.av-orb i { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 50% 45%, var(--accent) 0 38%, var(--accent-soft) 39% 100%); box-shadow: 0 0 0 2cqmin var(--accent-soft); animation: avOrb 22s ease-in-out infinite; }
+.av-bw { font-size: max(15px, 6.4cqmin); font-weight: 600; letter-spacing: -0.02em; min-height: 1.3em; }
+.av-bn { font-size: max(11px, 4cqmin); color: var(--ink-2); font-weight: 500; min-height: 1.3em; }
+.av-bw > *, .av-bn > * { opacity: 0; white-space: nowrap; }
+.av-in { animation: avIn 22s linear infinite; }
+.av-out { animation: avOut 22s linear infinite; }
+.av-rest { animation: avRest 22s linear infinite; font-size: 0.72em; }
+.av-n1 { animation: avN1 22s linear infinite; }
+.av-n2 { animation: avN2 22s linear infinite; }
+.av-n3 { animation: avN3 22s linear infinite; }
+@keyframes avOrb { 0% { transform: scale(0.5); } 13.6% { transform: scale(1); } 27.3% { transform: scale(0.5); } 40.9% { transform: scale(1); } 54.5% { transform: scale(0.5); } 68.2% { transform: scale(1); } 81.8% { transform: scale(0.5); } 90% { transform: scale(0.58); } 100% { transform: scale(0.5); } }
+@keyframes avIn { 0%, 12.8% { opacity: 1; } 13.6%, 26.5% { opacity: 0; } 27.3%, 40.1% { opacity: 1; } 40.9%, 53.7% { opacity: 0; } 54.5%, 67.4% { opacity: 1; } 68.2%, 100% { opacity: 0; } }
+@keyframes avOut { 0%, 12.8% { opacity: 0; } 13.6%, 26.5% { opacity: 1; } 27.3%, 40.1% { opacity: 0; } 40.9%, 53.7% { opacity: 1; } 54.5%, 67.4% { opacity: 0; } 68.2%, 81% { opacity: 1; } 81.8%, 100% { opacity: 0; } }
+@keyframes avRest { 0%, 81% { opacity: 0; } 82.5%, 98.5% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes avN1 { 0%, 26.5% { opacity: 1; } 27.3%, 100% { opacity: 0; } }
+@keyframes avN2 { 0%, 26.5% { opacity: 0; } 27.3%, 53.7% { opacity: 1; } 54.5%, 100% { opacity: 0; } }
+@keyframes avN3 { 0%, 53.7% { opacity: 0; } 54.5%, 81% { opacity: 1; } 81.8%, 100% { opacity: 0; } }
+
+/* Звоночек (10 с): звенит 2 с → «посиди» 5…1 → глаз открывается */
+.av-bell { gap: 6cqmin; }
+.av-bc { width: 50cqmin; height: 50cqmin; }
+.av-bellbox { position: relative; width: 30cqmin; height: 30cqmin; display: grid; place-items: center; animation: avShow1 10s linear infinite; }
+.av-bellbox svg { width: 100%; height: 100%; fill: var(--accent-soft); stroke: var(--ink); stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; transform-origin: 50% 12%; animation: avRing 10s ease-in-out infinite; }
+.av-wave { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 0.8cqmin var(--accent); opacity: 0; animation: avWave 10s ease-out infinite; }
+.av-wave--2 { animation-delay: 0.6s; }
+.av-cd { display: grid; place-items: center; }
+.av-cd b { grid-area: 1 / 1; font-size: 30cqmin; font-weight: 600; line-height: 1; letter-spacing: -0.04em; opacity: 0; animation: avCd 10s linear infinite; }
+.av-cd b:nth-child(2) { animation-delay: 1s; }
+.av-cd b:nth-child(3) { animation-delay: 2s; }
+.av-cd b:nth-child(4) { animation-delay: 3s; }
+.av-cd b:nth-child(5) { animation-delay: 4s; }
+.av-eye { opacity: 0; animation: avShow3 10s linear infinite; }
+.av-eye svg { width: 46cqmin; fill: var(--surface); stroke: var(--ink); stroke-width: 3; transform: scaleY(0.06); animation: avEye 10s var(--ease-out) infinite; }
+.av-eye circle { fill: var(--ink); stroke: none; }
+.av-bt { font-size: max(13px, 5.2cqmin); font-weight: 600; min-height: 1.3em; }
+.av-bt > * { opacity: 0; white-space: nowrap; }
+.av-t1 { animation: avShow1 10s linear infinite; }
+.av-t2 { animation: avShow2 10s linear infinite; }
+.av-t3 { animation: avShow3 10s linear infinite; }
+@keyframes avRing { 0% { transform: rotate(0); } 3% { transform: rotate(14deg); } 6% { transform: rotate(-12deg); } 9% { transform: rotate(9deg); } 12% { transform: rotate(-6deg); } 15%, 100% { transform: rotate(0); } }
+@keyframes avWave { 0% { transform: scale(0.8); opacity: 0.9; } 16% { transform: scale(1.7); opacity: 0; } 100% { opacity: 0; } }
+@keyframes avShow1 { 0%, 19% { opacity: 1; } 21%, 98% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes avShow2 { 0%, 20% { opacity: 0; } 22%, 69% { opacity: 1; } 71%, 100% { opacity: 0; } }
+@keyframes avShow3 { 0%, 70% { opacity: 0; } 72%, 97% { opacity: 1; } 99%, 100% { opacity: 0; } }
+/* одна цифра — 10 % цикла; задержки сдвигают их по секунде, старт с 20 % */
+@keyframes avCd { 0%, 20% { opacity: 0; transform: scale(0.9); } 21% { opacity: 1; transform: none; } 29% { opacity: 1; } 30%, 100% { opacity: 0; } }
+@keyframes avEye { 0%, 72% { transform: scaleY(0.06); } 88%, 100% { transform: scaleY(1); } }
+
+/* Дыхание: где чувствовать — у носа и в животе */
+.av-dot { position: absolute; width: 3cqmin; height: 3cqmin; margin: -1.5cqmin 0 0 -1.5cqmin; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(242, 190, 54, 0.6); animation: avDot 2.4s ease-out infinite; }
+.av-dlabel { position: absolute; transform: translateY(-50%); padding: 0.8cqmin 2.2cqmin; border-radius: 99px; background: rgba(255, 255, 255, 0.92); color: #2B2925; font-size: max(10px, 3.6cqmin); font-weight: 600; white-space: nowrap; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+@keyframes avDot { 0% { box-shadow: 0 0 0 0 rgba(242, 190, 54, 0.7); } 70% { box-shadow: 0 0 0 3.4cqmin rgba(242, 190, 54, 0); } 100% { box-shadow: 0 0 0 0 rgba(242, 190, 54, 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .av *, .av-dot { animation-duration: 0s !important; animation-iteration-count: 1 !important; }
+}
