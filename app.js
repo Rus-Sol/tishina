@@ -27,7 +27,7 @@
 
   /* ---------- Хранилище: Telegram CloudStorage, вне Telegram — localStorage ---------- */
   const useCloud = inTelegram && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9');
-  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur'];
+  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur', 'locked'];
   const Store = {
     pending() { try { return JSON.parse(localStorage.getItem('t__pending') || '[]'); } catch (e) { return []; } },
     setPending(list) { try { localStorage.setItem('t__pending', JSON.stringify([...new Set(list)])); } catch (e) { /* нет хранилища */ } },
@@ -90,7 +90,7 @@
   };
 
   /* ---------- Состояние ---------- */
-  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null };
+  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null, locked: 0 };
   const view = { tab: 'today', sub: null, practice: { step: 'setup', sec: 600, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
   let lastPetals = 0;
 
@@ -133,11 +133,11 @@
   }
   if (inTelegram) tg.BackButton.onClick(() => go(view.tab));
 
-  function toast(text) {
+  function toast(text, ms = 1600) {
     $toast.textContent = text;
     $toast.classList.add('is-on');
     clearTimeout(toast.t);
-    toast.t = setTimeout(() => $toast.classList.remove('is-on'), 1600);
+    toast.t = setTimeout(() => $toast.classList.remove('is-on'), ms);
   }
   function open(url) { if (inTelegram && /^https:\/\/t\.me\//.test(url)) tg.openTelegramLink(url); else window.open(url, '_blank'); }
 
@@ -391,7 +391,7 @@
         </div>
         ${why ? `<p class="sub" style="max-width:320px;margin:0 auto">Ты садишься, чтобы: <b style="color:var(--ink)">${why.t.toLowerCase()}</b></p>` : ''}
         <div>${btn('Начать', 'data-step="before"', 'btn--accent')}</div>
-        <p class="sub" style="max-width:320px;margin:0 auto">Можно включить авиарежим — таймер и звоночек работают без сети.</p>
+        <p class="${S.locked ? 'lock-warn' : 'sub'}" style="max-width:320px;margin:0 auto">${S.locked ? 'В прошлый раз экран заблокировался или приложение свернулось, и звоночек не прозвенел. ' : ''}Экран не блокируй — положи телефон экраном вниз. Он сам притухнет, а звоночек прозвенит. Авиарежим можно: всё работает без сети.</p>
       </div>`;
     if (p.step === 'before') return `
       <div class="practice">
@@ -403,8 +403,9 @@
       <div class="practice">
         <div class="breath"><div class="breath__ring"></div>${daisyOutline('breath__petals')}<div class="breath__core"></div></div>
         <div><div class="clock num" id="clock">${fmt(Math.max(0, p.endAt - Date.now()))}</div>
-        <div class="clock-sub" id="clock-sub">${p.step === 'bell' ? 'Звоночек. Хочешь — посиди ещё.' : 'Ушёл в мысли — заметил и вернулся'}</div></div>
+        <div class="clock-sub" id="clock-sub">${p.step === 'bell' ? (p.wasLocked ? 'Время вышло, пока экран был заблокирован или приложение свёрнуто, — поэтому звоночек был не слышен. Практика засчитается.' : 'Звоночек. Хочешь — посиди ещё.') : 'Ушёл в мысли — заметил и вернулся'}</div></div>
         <div>${p.step === 'bell' ? btn('Завершить', 'data-step="after"', 'btn--accent') : '<button class="ghost" data-step="after">Закончить раньше</button>'}</div>
+        ${p.step === 'run' ? '<p class="lock-tip">📱 Не блокируй экран — просто положи телефон экраном вниз. Экран сам притухнет, звоночек прозвенит.</p>' : ''}
       </div>`;
     if (p.step === 'after') return `
       <div class="practice">
@@ -685,24 +686,38 @@
     syncPresets(true);
   }
 
+  /* ---------- Экран во время практики: не гаснет (NoSleep.js) и притухает через 8 с; касание — ярче ---------- */
+  const noSleep = window.NoSleep ? new window.NoSleep() : null;
+  function awake(on) { try { if (!noSleep) return; if (on && !noSleep.isEnabled) noSleep.enable(); else if (!on && noSleep.isEnabled) noSleep.disable(); } catch (e) { /* не поддерживается */ } }
+  let dimTimer = null;
+  function dim(on) {
+    clearTimeout(dimTimer);
+    document.documentElement.classList.toggle('is-dim', on);
+    if (inTelegram) { try { const c = on ? '#000000' : getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); tg.setHeaderColor(c); tg.setBackgroundColor(c); if (tg.setBottomBarColor) tg.setBottomBarColor(c); } catch (e) { /* старый клиент */ } }
+  }
+  function dimSoon() { clearTimeout(dimTimer); dimTimer = setTimeout(() => { if (view.practice.step === 'run') dim(true); }, 8000); }
+  // касание во время практики — экран ярче на 8 секунд
+  document.addEventListener('pointerdown', () => { if (view.practice.step === 'run' && view.tab === 'practice') { dim(false); dimSoon(); } }, true);
+
   /* ---------- Практика: таймер ---------- */
   let ticker = null;
   function startRun() {
     const p = view.practice;
     unlockAudio(); bell('start');
     p.startAt = Date.now(); p.endAt = p.startAt + p.sec * 1000; p.step = 'run';
+    p.wasLocked = false; awake(true); dimSoon();
     if (inTelegram) { try { tg.enableClosingConfirmation(); } catch (e) { /* старый клиент */ } }
     render(true);
     clearInterval(ticker);
     ticker = setInterval(() => {
       const left = p.endAt - Date.now();
       const $c = document.getElementById('clock');
-      if (p.step === 'run' && left <= 0) { p.step = 'bell'; bell('end'); haptic.ok(); render(); return; }
+      if (p.step === 'run' && left <= 0) { p.step = 'bell'; bell('end'); haptic.ok(); dim(false); render(); return; }
       if ($c) $c.textContent = p.step === 'bell' ? `+${fmt(-left)}` : fmt(Math.max(0, left));
     }, 250);
   }
   function stopRun() {
-    clearInterval(ticker);
+    clearInterval(ticker); awake(false); dim(false);
     if (inTelegram) { try { tg.disableClosingConfirmation(); } catch (e) { /* старый клиент */ } }
   }
   function finishPractice() {
@@ -735,7 +750,7 @@
       if (d.step === 'after' && ['run', 'bell'].includes(view.practice.step)) stopRun();
       view.practice.step = d.step; return render(true);
     }
-    if (d.before) { haptic.tap(); view.practice.before = Number(d.before); return setTimeout(startRun, 180); }
+    if (d.before) { haptic.tap(); view.practice.before = Number(d.before); awake(true); return setTimeout(startRun, 180); }
     if (d.after) { haptic.tap(); view.practice.after = Number(d.after); render(); return setTimeout(() => { finishPractice(); render(true); }, 220); }
     if (d.watch) {
       const id = Number(d.watch);
@@ -824,7 +839,15 @@
 
   document.addEventListener('visibilitychange', () => {
     const p = view.practice;
-    if (!document.hidden && p.step === 'run' && Date.now() >= p.endAt) { p.step = 'bell'; render(); }
+    if (document.hidden && p.step === 'run') { p.wasLocked = true; return; }
+    if (document.hidden) return;
+    if (p.step === 'run' && p.wasLocked) {
+      // экран блокировали: запомним, чтобы в следующий раз подсказать заметнее
+      S.locked = (Number(S.locked) || 0) + 1; Store.save('locked', S.locked);
+      awake(true);
+      if (Date.now() >= p.endAt) { p.step = 'bell'; dim(false); unlockAudio(); bell('end'); render(); }
+      else { p.wasLocked = false; toast('Не блокируй экран и не сворачивай приложение — иначе звоночек не прозвенит', 4200); dim(false); dimSoon(); }
+    } else if (p.step === 'run' && Date.now() >= p.endAt) { p.step = 'bell'; render(); }
   });
 
   /* ---------- Старт ---------- */
