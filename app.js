@@ -504,7 +504,7 @@
     const p = view.practice;
     unlockAudio(); bell();
     p.startAt = Date.now(); p.endAt = p.startAt + p.min * 60000; p.step = 'run';
-    if (inTelegram) { try { tg.enableClosingConfirmation(); tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch (e) { /* старый клиент */ } }
+    if (inTelegram) { try { tg.enableClosingConfirmation(); } catch (e) { /* старый клиент */ } }
     render(true);
     clearInterval(ticker);
     ticker = setInterval(() => {
@@ -516,7 +516,7 @@
   }
   function stopRun() {
     clearInterval(ticker);
-    if (inTelegram) { try { tg.disableClosingConfirmation(); tg.enableVerticalSwipes && tg.enableVerticalSwipes(); } catch (e) { /* старый клиент */ } }
+    if (inTelegram) { try { tg.disableClosingConfirmation(); } catch (e) { /* старый клиент */ } }
   }
   function finishPractice() {
     const p = view.practice;
@@ -630,7 +630,12 @@
 
   /* ---------- Старт ---------- */
   async function boot() {
-    if (inTelegram) { tg.ready(); tg.expand(); tg.onEvent('themeChanged', applyTheme); }
+    if (inTelegram) {
+      tg.ready(); tg.expand(); tg.onEvent('themeChanged', applyTheme);
+      // свайп вниз не сворачивает приложение; на телефоне — полный экран
+      try { if (tg.isVersionAtLeast('7.7')) tg.disableVerticalSwipes(); } catch (e) { /* старый клиент */ }
+      try { if (['android', 'ios'].includes(tg.platform) && tg.isVersionAtLeast('8.0')) tg.requestFullscreen(); } catch (e) { /* старый клиент */ }
+    }
     else window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
     applyTheme();
     const saved = await Store.load();
