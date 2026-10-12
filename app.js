@@ -91,7 +91,7 @@
 
   /* ---------- Состояние ---------- */
   const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '' };
-  const view = { tab: 'today', sub: null, practice: { step: 'setup', min: 10, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'mark', howto: null };
+  const view = { tab: 'today', sub: null, practice: { step: 'setup', min: 10, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
   let lastPetals = 0;
 
   /* ---------- Даты ---------- */
@@ -177,7 +177,8 @@
   /* ---------- Хелперы разметки ---------- */
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const btn = (text, attrs = '', cls = '') => `<button class="btn ${cls}" ${attrs}><span>${text}</span><span class="btn__icon">${I.arrow}</span></button>`;
-  const allWhy = () => D.why.flatMap((g) => g.items.map(([id, t, src, proof, when]) => ({ id, t, src, proof, when, group: g.title })));
+  const allWhy = () => D.why.flatMap((g) => g.items.map(([id, t, src, proof, when]) => ({ id, t, src, proof, when, group: g.title, gid: g.id })));
+  const qbar = (k, n) => `<div class="qbar" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<i class="${i < k ? 'is-on' : ''}"></i>`).join('')}</div>`;
   const whyById = (id) => allWhy().find((x) => x.id === id);
   const mainIds = () => (S.top.length ? S.top : S.why);
   const plural = (n, one, few, many) => { const m10 = n % 10; const m100 = n % 100; if (m10 === 1 && m100 !== 11) return one; if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few; return many; };
@@ -210,7 +211,7 @@
     const done = practicedToday();
     const st = streak();
     const why = mainIds().length ? whyById(mainIds()[(day - 1) % mainIds().length]) : null;
-    const howOpen = view.howto == null ? !S.sessions.length : view.howto;
+    const howOpen = view.howto;
     const rules = D.rules.filter((r) => r.day <= day);
     const rulesLeft = D.rules.length - rules.length;
     const firstTime = day === 1 && !S.watched.includes(1) && !S.sessions.length;
@@ -230,11 +231,11 @@
       <h1 class="title">${greet}${name ? `, ${esc(name)}` : ''}</h1>
       <p class="lead attitude-line"><span class="muted">Установка дня:</span> <b>${att.word}.</b> ${att.line}</p>
 
-      ${S.top.length ? '' : `<div class="shell"><div class="core">
-        <span class="chip chip--accent">Начни с этого · 2 минуты</span>
+      ${S.top.length ? '' : `<div class="shell shell--hl"><div class="core">
+        <span class="chip chip--accent">Начни с этого · 3 минуты</span>
         <h2 class="h2" style="margin-top:14px">Выбери своё «зачем»</h2>
-        <p class="sub" style="margin-bottom:18px">Отметь, что хочешь получить от медитации, и выбери три главных. С ясным «зачем» люди практикуют дольше.</p>
-        ${btn(S.why.length ? 'Выбрать три главных' : 'Выбрать', 'data-go="why"', 'btn--full')}
+        <p class="sub" style="margin-bottom:18px">Короткий тест: что медитация может дать тебе. В конце выберешь три главных. С ясным «зачем» люди практикуют дольше.</p>
+        ${btn(S.why.length ? 'Продолжить тест' : 'Пройти тест', 'data-go="why"', 'btn--full btn--accent')}
       </div></div>
       <div class="section-gap"></div>`}
 
@@ -245,7 +246,7 @@
         </div>
         <div class="practice-card__min num">${view.practice.min}<small>минут в тишине</small></div>
         ${why ? `<div><div class="why-now__k">Ты садишься, чтобы</div><div class="why-now__t">${esc(why.t.toLowerCase())}</div></div>` : ''}
-        ${btn(done ? 'Сесть ещё раз' : 'Начать практику', 'data-start="1"', 'btn--full btn--accent')}
+        ${btn(done ? 'Сесть ещё раз' : 'Начать практику', 'data-start="1"', `btn--full${S.top.length ? ' btn--accent' : ''}`)}
         ${firstTime ? '<p class="sub" style="margin:-6px 2px 0">Первый раз? Сначала посмотри видео 0 и 1 ниже: там всё о том, как сесть и что делать.</p>' : ''}
       </div></div>
 
@@ -304,8 +305,24 @@
       <div class="scale__ends"><span>неспокойно</span><span>очень спокойно</span></div>`;
   }
 
+  // Перед первой практикой — 5 шагов по одному на экран. После хотя бы одной практики не показываем
+  function screenHowto() {
+    const i = view.howI; const s = D.howto[i]; const n = D.howto.length; const last = i === n - 1;
+    return `
+      ${qbar(i + 1, n)}
+      <span class="eyebrow"><span class="dot"></span>Перед первой практикой · шаг ${i + 1} из ${n}</span>
+      <div class="howstep__img${s.img ? ' has-img' : ''}">${s.img ? `<img src="${s.img}" alt="${esc(s.alt)}">` : daisyOutline('hstep__daisy')}<b class="hstep__n num">${i + 1}</b></div>
+      <h1 class="title">${s.t}</h1>
+      <p class="lead" style="margin-bottom:10px">${s.do}</p>
+      <p class="sub"><span class="muted">Зачем:</span> ${s.why}</p>
+      <div class="section-gap"></div>
+      ${btn(last ? 'Понятно, начинаем' : 'Дальше', 'data-hownext="1"', 'btn--full btn--accent')}
+      <div class="howstep__nav">${i ? '<button class="ghost" data-howback="1">Назад</button>' : '<span></span>'}${last ? '' : '<button class="ghost" data-howskip="1">Пропустить</button>'}</div>`;
+  }
+
   function screenPractice() {
     const p = view.practice;
+    if (['setup', 'before'].includes(p.step) && !S.sessions.length && !view.howDone) return screenHowto();
     const why = mainIds().length ? whyById(mainIds()[(courseDay() - 1) % mainIds().length]) : null;
     if (p.step === 'setup') return `
       <div class="practice">
@@ -430,49 +447,105 @@
       </div></div>`;
   }
 
+  // «Моё зачем» — тест: сфера за сферой → если отмечено много, по одному лучшему в каждой сфере → 3 главных → строка → итог
+  const TOP = 3; const WHY_LIST = 8;
+  const whyRounds = () => D.why.filter((g) => g.items.filter(([id]) => S.why.includes(id)).length > 1);
+  function whyCands() {
+    const marked = allWhy().filter((x) => S.why.includes(x.id));
+    if (marked.length <= WHY_LIST) return marked;
+    return D.why.map((g) => { const m = marked.filter((x) => x.gid === g.id); return m.length > 1 ? whyById(view.whyWin[g.id]) : m[0]; }).filter(Boolean);
+  }
+  function whyToTop() {
+    const c = whyCands().map((x) => x.id);
+    S.top = c.length <= TOP ? c : S.top.filter((id) => c.includes(id));
+    Store.save('top', S.top);
+    view.whyStep = c.length <= TOP ? 'note' : 'top';
+  }
+  function whyAfterGroups() {
+    if (!S.why.length) { toast('Отметь хотя бы одно'); view.whyG = 0; return; }
+    view.whyWin = {};
+    if (S.why.length > WHY_LIST) { view.whyR = 0; view.whyStep = 'round'; } else whyToTop();
+  }
+  function whyBack() {
+    const st = view.whyStep;
+    const lastG = () => { view.whyStep = 'g'; view.whyG = D.why.length - 1; };
+    const lastR = () => { view.whyStep = 'round'; view.whyR = whyRounds().length - 1; };
+    if (st === 'g') { if (view.whyG > 0) view.whyG -= 1; else view.whyStep = 'intro'; }
+    else if (st === 'round') { if (view.whyR > 0) view.whyR -= 1; else lastG(); }
+    else if (st === 'top') { if (S.why.length > WHY_LIST) lastR(); else lastG(); }
+    else if (st === 'note') { if (whyCands().length > TOP) view.whyStep = 'top'; else if (S.why.length > WHY_LIST) lastR(); else lastG(); }
+  }
+  const whyItem = (x, attr, on, icon, meta = true) => `<button class="item${attr === 'data-why' ? '' : ' item--top'}${on ? ' is-on' : ''}" ${attr}="${attr === 'data-win' ? `${x.gid}:${x.id}` : x.id}" aria-pressed="${on}">
+      <span class="item__body"><span class="item__t">${x.t}</span><span class="item__p">${x.proof}</span>
+      ${meta ? `<span class="item__m"><span class="chip src-${x.src}">${D.srcLabel[x.src]}</span><span class="chip">${x.when}</span></span>` : ''}</span>
+      <span class="heart">${icon}</span></button>`;
+  const backLink = '<div style="text-align:center;margin-top:8px"><button class="ghost" data-whyback="1">Назад</button></div>';
+
   function screenWhy() {
-    const TOP = 3;
-    const note = `<div class="label">Почему это важно именно тебе?</div>
-      <textarea class="note" id="why-note" maxlength="300" placeholder="Одна строка про самое главное. Например: хочу перестать срываться на сына — он этого не заслужил.">${esc(S.note || '')}</textarea>
-      <p class="sub" style="margin:10px 4px 0">Это видишь только ты и Рустем.</p>`;
-    if (view.whyStep === 'top') {
-      const marked = S.why.map(whyById).filter(Boolean);
+    const W = D.whyIntro; const st = view.whyStep; const n = D.why.length;
+    if (st === 'g') {
+      const g = D.why[view.whyG];
+      const items = allWhy().filter((x) => x.gid === g.id);
       return `
-      <span class="eyebrow"><span class="dot"></span>Шаг 2 из 2</span>
+      ${qbar(view.whyG + 1, n)}
+      <span class="eyebrow"><span class="dot"></span>Вопрос ${view.whyG + 1} из ${n}</span>
+      <h1 class="title">${g.title}</h1>
+      <p class="lead">${W.ask} Отметь всё, что откликается.</p>
+      <div class="shell"><div class="core" style="padding:2px 16px">${items.map((x) => whyItem(x, 'data-why', S.why.includes(x.id), I.heart)).join('')}</div></div>
+      <div class="section-gap"></div>
+      ${btn(view.whyG < n - 1 ? 'Дальше' : 'Готово — выбрать главное', 'data-whynext="1"', 'btn--full btn--accent')}
+      <p class="sub" style="text-align:center;margin-top:10px">Отмечено всего: <span class="num" id="why-n">${S.why.length}</span></p>
+      ${backLink}`;
+    }
+    if (st === 'round') {
+      const rs = whyRounds(); const g = rs[Math.min(view.whyR, rs.length - 1)];
+      const items = allWhy().filter((x) => x.gid === g.id && S.why.includes(x.id));
+      return `
+      ${qbar(view.whyR + 1, rs.length)}
+      <span class="eyebrow"><span class="dot"></span>Почти готово · ${view.whyR + 1} из ${rs.length}</span>
+      <h1 class="title">${g.title}: что важнее?</h1>
+      <p class="lead">Ты отметил ${S.why.length} ${plural(S.why.length, 'пункт', 'пункта', 'пунктов')} — это хорошо. Теперь в каждой сфере выбери одно, самое важное. Остальные отметки сохранятся.</p>
+      <div class="shell"><div class="core" style="padding:2px 16px">${items.map((x) => whyItem(x, 'data-win', view.whyWin[g.id] === x.id, I.star, false)).join('')}</div></div>
+      ${backLink}`;
+    }
+    if (st === 'top') {
+      const cands = whyCands();
+      return `
+      <span class="eyebrow"><span class="dot"></span>Почти готово</span>
       <h1 class="title">Выбери 3 самых главных</h1>
-      <p class="lead">О них я буду напоминать перед практикой. Остальные отметки сохранятся.</p>
+      <p class="lead">О них я буду напоминать перед практикой.</p>
       <div class="counter" id="why-counter"><span class="counter__n">Главных: <span class="num" id="top-n">${S.top.length}</span> из ${TOP}</span><span class="counter__dots">${Array.from({ length: TOP }, (_, i) => `<i class="${i < S.top.length ? 'is-on' : ''}"></i>`).join('')}</span></div>
-      <div class="shell"><div class="core" style="padding:2px 16px">
-        ${marked.map((x) => { const on = S.top.includes(x.id); return `<button class="item item--top${on ? ' is-on' : ''}" data-top="${x.id}" aria-pressed="${on}"><span class="item__body"><span class="item__t">${x.t}</span><span class="item__p">${x.proof}</span></span><span class="heart">${I.star}</span></button>`; }).join('')}
-      </div></div>
-      ${note}
+      <div class="shell"><div class="core" style="padding:2px 16px">${cands.map((x) => whyItem(x, 'data-top', S.top.includes(x.id), I.star, false)).join('')}</div></div>
+      <div class="section-gap"></div>
+      ${btn('Дальше', `data-whystep="note" ${S.top.length === TOP ? '' : 'disabled'}`, 'btn--full btn--accent')}
+      ${backLink}`;
+    }
+    if (st === 'note') return `
+      <span class="eyebrow"><span class="dot"></span>Последний шаг</span>
+      <h1 class="title">Почему это важно именно тебе?</h1>
+      <p class="lead">Одна строка про самое главное. Её видишь только ты и Рустем.</p>
+      <textarea class="note" id="why-note" maxlength="300" placeholder="Например: хочу перестать срываться на сына — он этого не заслужил.">${esc(S.note || '')}</textarea>
       <div class="section-gap"></div>
       ${btn('Готово', 'data-whydone="1"', 'btn--full btn--accent')}
-      <div style="text-align:center;margin-top:8px"><button class="ghost" data-whystep="mark">Назад к списку</button></div>`;
-    }
-    const groups = D.why.map((g) => `
-      <section class="why-group">
-        <div class="why-group__h"><h3>${g.title}</h3><span>${g.sub}</span></div>
-        <div class="shell"><div class="core" style="padding:2px 16px">
-          ${g.items.map(([id, t, src, proof, when]) => {
-            const on = S.why.includes(id);
-            return `<button class="item${on ? ' is-on' : ''}" data-why="${id}" aria-pressed="${on}">
-              <span class="item__body"><span class="item__t">${t}</span><span class="item__p">${proof}</span>
-              <span class="item__m"><span class="chip src-${src}">${D.srcLabel[src]}</span><span class="chip">${when}</span></span></span>
-              <span class="heart">${I.heart}</span></button>`;
-          }).join('')}
-        </div></div>
-      </section>`).join('');
-    return `
-      <span class="eyebrow"><span class="dot"></span>Шаг 1 из 2</span>
-      <h1 class="title">${D.whyIntro.title}</h1>
-      <p class="lead">${D.whyIntro.text}</p>
-      <ol class="steps">${D.whyIntro.steps.map((s, i) => `<li><b class="num">${i + 1}</b><span>${s}</span></li>`).join('')}</ol>
-      <div class="legend-src"><span class="chip src-r">Исследование — проверили учёные</span><span class="chip src-p">Пишут люди — из тысяч отзывов</span><span class="chip src-a">Опыт Рустема</span></div>
-      <div class="counter" id="why-counter"><span class="counter__n">Отмечено: <span class="num" id="why-n">${S.why.length}</span></span><button class="counter__btn press" data-whystep="top" ${S.why.length ? '' : 'disabled'}>Дальше</button></div>
-      ${groups}
+      ${backLink}`;
+    if (st === 'done') {
+      const top = S.top.map(whyById).filter(Boolean);
+      return `
+      <span class="eyebrow"><span class="dot"></span>Моё зачем</span>
+      <h1 class="title">Ты садишься, чтобы…</h1>
+      <div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${x.proof}</span></span></li>`).join('')}</ul>${S.note ? `<p class="sub" style="margin:4px 0 0">«${esc(S.note)}»</p>` : ''}</div></div>
+      <p class="sub" style="margin:14px 4px 0">Перед каждой практикой я напомню одно из них. Всего отмечено: <span class="num">${S.why.length}</span>.</p>
       <div class="section-gap"></div>
-      ${btn('Дальше: выбрать 3 главных', `data-whystep="top" ${S.why.length ? '' : 'disabled'}`, 'btn--full why-next')}`;
+      ${btn('На главную', 'data-tab="today"', 'btn--full btn--accent')}
+      <div style="text-align:center;margin-top:8px"><button class="ghost" data-whyg="0">Пройти тест заново</button></div>`;
+    }
+    return `
+      <span class="eyebrow"><span class="dot"></span>Моё зачем · ${W.time}</span>
+      <h1 class="title">${W.title}</h1>
+      <p class="lead">${W.text}</p>
+      <ol class="steps">${W.steps.map((x, i) => `<li><b class="num">${i + 1}</b><span>${x}</span></li>`).join('')}</ol>
+      <div class="legend-src"><span class="chip src-r">Исследование — проверили учёные</span><span class="chip src-p">Пишут люди — из тысяч отзывов</span><span class="chip src-a">Опыт Рустема</span></div>
+      ${btn(S.why.length ? 'Продолжить тест' : 'Начать тест', 'data-whyg="0"', 'btn--full btn--accent')}`;
   }
 
   /* ---------- Роутинг ---------- */
@@ -480,7 +553,7 @@
   function go(target) {
     const [name, param] = String(target).split(':');
     if (['today', 'course', 'practice', 'answers', 'path'].includes(name)) { view.tab = name; view.sub = null; }
-    else { view.sub = { name, param }; if (name === 'why') view.whyStep = S.why.length && !S.top.length ? 'top' : 'mark'; }
+    else { view.sub = { name, param }; if (name === 'why') view.whyStep = S.top.length ? 'done' : 'intro'; }
     if (name === 'practice' && ['done'].includes(view.practice.step)) view.practice.step = 'setup';
     render(true);
   }
@@ -493,7 +566,8 @@
     $app.innerHTML = `<section class="screen">${html}</section>`;
     if (scrollTop) window.scrollTo(0, 0);
     const running = view.tab === 'practice' && !view.sub && ['run', 'bell'].includes(view.practice.step);
-    $dock.classList.toggle('is-hidden', running || !!view.sub);
+    const howto = view.tab === 'practice' && !view.sub && ['setup', 'before'].includes(view.practice.step) && !S.sessions.length && !view.howDone;
+    $dock.classList.toggle('is-hidden', running || howto || !!view.sub);
     $dock.querySelectorAll('[data-tab]').forEach((b) => b.classList.toggle('is-active', b.dataset.tab === view.tab && !view.sub));
     setBack(!!view.sub);
   }
@@ -536,7 +610,10 @@
     if (d.tab) { haptic.tap(); if (d.tab === 'practice' && view.tab !== 'practice') view.practice.step = view.practice.step === 'done' ? 'setup' : view.practice.step; return go(d.tab); }
     if (d.go) { haptic.tap(); return go(d.go); }
     if (d.start) { haptic.soft(); view.practice.step = 'before'; return go('practice'); }
-    if (d.howto) { haptic.tap(); view.howto = !(view.howto == null ? !S.sessions.length : view.howto); return render(); }
+    if (d.howto) { haptic.tap(); view.howto = !view.howto; return render(); }
+    if (d.hownext) { haptic.tap(); if (view.howI < D.howto.length - 1) view.howI += 1; else { view.howDone = true; haptic.ok(); } return render(true); }
+    if (d.howback) { haptic.tap(); view.howI = Math.max(0, view.howI - 1); return render(true); }
+    if (d.howskip) { haptic.tap(); view.howDone = true; return render(true); }
     if (d.url) { haptic.tap(); return open(d.url); }
     if (d.min) { haptic.tap(); view.practice.min = Number(d.min); return render(); }
     if (d.step) {
@@ -593,8 +670,16 @@
       haptic.soft(); Store.save('top', S.top);
       return updateWhy();
     }
+    if (d.whyg) { haptic.tap(); view.whyG = Number(d.whyg); view.whyStep = 'g'; return render(true); }
+    if (d.whynext) { haptic.tap(); if (view.whyG < D.why.length - 1) view.whyG += 1; else whyAfterGroups(); return render(true); }
+    if (d.whyback) { haptic.tap(); whyBack(); return render(true); }
+    if (d.win) {
+      const [gid, id] = d.win.split(':'); view.whyWin[gid] = id; haptic.soft();
+      document.querySelectorAll('[data-win]').forEach((b) => { const on = b.dataset.win === d.win; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on); });
+      return setTimeout(() => { if (view.whyR < whyRounds().length - 1) view.whyR += 1; else whyToTop(); render(true); }, 260);
+    }
     if (d.whystep) { haptic.tap(); view.whyStep = d.whystep; return render(true); }
-    if (d.whydone) { Store.save('note', S.note); Sync.push('why', { top: S.top, why: S.why, note: S.note }, 'why'); haptic.ok(); toast('Сохранено'); view.whyStep = 'mark'; return go(view.tab); }
+    if (d.whydone) { Store.save('note', S.note); Store.save('top', S.top); Sync.push('why', { top: S.top, why: S.why, note: S.note }, 'why'); haptic.ok(); toast('Сохранено'); view.whyStep = 'done'; return render(true); }
   });
 
   function updateWhy() {
@@ -603,7 +688,7 @@
     const n = document.getElementById('why-n'); if (n) n.textContent = S.why.length;
     const t = document.getElementById('top-n'); if (t) t.textContent = S.top.length;
     document.querySelectorAll('.counter__dots i').forEach((dot, i) => dot.classList.toggle('is-on', i < S.top.length));
-    document.querySelectorAll('[data-whystep="top"]').forEach((b) => { b.disabled = !S.why.length; });
+    document.querySelectorAll('[data-whystep="note"]').forEach((b) => { b.disabled = S.top.length !== TOP; });
   }
 
   let noteTimer = null;
