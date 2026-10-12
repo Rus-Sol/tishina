@@ -417,7 +417,7 @@
 
       <div class="label">Точка отсчёта</div>
       <div class="shell"><div class="core">
-        <p class="sub" style="margin:0">До скольких ты досчитал выдохи за минуту без сбоя. В первый день и на седьмой — сравни.</p>
+        <p class="sub" style="margin:0">Сколько раз ты сбился со счёта выдохов за минуту проверки. В первый день и на седьмой — сравни: чем меньше, тем лучше.</p>
         <div class="baseline">
           <label>День 1<input class="num" inputmode="numeric" maxlength="3" data-base="base1" value="${esc(S.base1 || '')}" placeholder="—"></label>
           <label>День 7<input class="num" inputmode="numeric" maxlength="3" data-base="base7" value="${esc(S.base7 || '')}" placeholder="—"></label>
