@@ -27,7 +27,7 @@
 
   /* ---------- Хранилище: Telegram CloudStorage, вне Telegram — localStorage ---------- */
   const useCloud = inTelegram && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9');
-  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7'];
+  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset'];
   const Store = {
     pending() { try { return JSON.parse(localStorage.getItem('t__pending') || '[]'); } catch (e) { return []; } },
     setPending(list) { try { localStorage.setItem('t__pending', JSON.stringify([...new Set(list)])); } catch (e) { /* нет хранилища */ } },
@@ -90,7 +90,7 @@
   };
 
   /* ---------- Состояние ---------- */
-  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '' };
+  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '' };
   const view = { tab: 'today', sub: null, practice: { step: 'setup', min: 10, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
   let lastPetals = 0;
 
@@ -725,6 +725,12 @@
     applyTheme();
     const saved = await Store.load();
     Object.keys(S).forEach((k) => { if (saved[k] != null) S[k] = saved[k]; });
+    // «Начать заново» в боте: ссылка несёт метку reset — обнуляем данные один раз на метку
+    const reset = new URLSearchParams(location.search).get('reset');
+    if (reset && reset !== String(S.reset)) {
+      Object.assign(S, { start: Date.now(), why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset });
+      KEYS.forEach((k) => Store.save(k, S[k]));
+    }
     if (!S.start) { S.start = Date.now(); Store.save('start', S.start); }
     lastPetals = S.sessions.length;
     Store.flush();
