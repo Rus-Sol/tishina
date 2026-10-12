@@ -631,3 +631,12 @@ input, textarea { font: inherit; color: inherit; }
 .bell-try { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
 .bell-try svg { width: 18px; height: 18px; fill: var(--accent-soft); stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
 @media (prefers-reduced-motion: reduce) { .dur__pill { transition: opacity 200ms ease; } }
+
+/* Практика: экран не блокировать; притухание до почти чёрного */
+.lock-tip { max-width: 300px; margin: 0 auto; font-size: 13px; line-height: 1.45; color: var(--ink-3); text-align: center; }
+.lock-warn { font-size: 14px; line-height: 1.45; color: var(--ink); background: var(--accent-soft); padding: 12px 14px; border-radius: 16px; text-align: center; }
+html.is-dim, html.is-dim body { background: #000 !important; }
+.screen .practice > * { transition: opacity 1.6s ease, filter 1.6s ease; }
+html.is-dim .screen .practice > * { opacity: 0.06; }
+html.is-dim .screen .practice > div:nth-child(2) { opacity: 0.28; filter: grayscale(1); }
+html.is-dim .clock { color: #fff; }
