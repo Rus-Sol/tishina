@@ -390,8 +390,8 @@
           <button class="ghost bell-try" data-belltry="1">${AV_BELL}<span>Послушать звоночек</span></button>
         </div>
         ${why ? `<p class="sub" style="max-width:320px;margin:0 auto">Ты садишься, чтобы: <b style="color:var(--ink)">${why.t.toLowerCase()}</b></p>` : ''}
+        ${lockNote(`${S.locked ? 'В прошлый раз экран заблокировался, и звоночек не прозвенел. ' : ''}Положи телефон экраном вниз — экран сам притухнет, а звоночек прозвенит. Авиарежим можно.`)}
         <div>${btn('Начать', 'data-step="before"', 'btn--accent')}</div>
-        <p class="${S.locked ? 'lock-warn' : 'sub'}" style="max-width:320px;margin:0 auto">${S.locked ? 'В прошлый раз экран заблокировался или приложение свернулось, и звоночек не прозвенел. ' : ''}Экран не блокируй — положи телефон экраном вниз. Он сам притухнет, а звоночек прозвенит. Авиарежим можно: всё работает без сети.</p>
       </div>`;
     if (p.step === 'before') return `
       <div class="practice">
@@ -405,7 +405,7 @@
         <div><div class="clock num" id="clock">${fmt(Math.max(0, p.endAt - Date.now()))}</div>
         <div class="clock-sub" id="clock-sub">${p.step === 'bell' ? (p.wasLocked ? 'Время вышло, пока экран был заблокирован или приложение свёрнуто, — поэтому звоночек был не слышен. Практика засчитается.' : 'Звоночек. Хочешь — посиди ещё.') : 'Ушёл в мысли — заметил и вернулся'}</div></div>
         <div>${p.step === 'bell' ? btn('Завершить', 'data-step="after"', 'btn--accent') : '<button class="ghost" data-step="after">Закончить раньше</button>'}</div>
-        ${p.step === 'run' ? '<p class="lock-tip">📱 Не блокируй экран — просто положи телефон экраном вниз. Экран сам притухнет, звоночек прозвенит.</p>' : ''}
+        ${p.step === 'run' ? lockNote('Положи телефон экраном вниз. Экран сам притухнет, а звоночек прозвенит.') : ''}
       </div>`;
     if (p.step === 'after') return `
       <div class="practice">
@@ -687,6 +687,8 @@
   }
 
   /* ---------- Экран во время практики: не гаснет (NoSleep.js) и притухает через 8 с; касание — ярче ---------- */
+  const LOCK_ICON = '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M4 4l16 16"/></svg>';
+  const lockNote = (text) => `<div class="lock-note" role="note"><span class="lock-note__i">${LOCK_ICON}</span><span><b>Не блокируй экран</b><span>${text}</span></span></div>`;
   const noSleep = window.NoSleep ? new window.NoSleep() : null;
   function awake(on) { try { if (!noSleep) return; if (on && !noSleep.isEnabled) noSleep.enable(); else if (!on && noSleep.isEnabled) noSleep.disable(); } catch (e) { /* не поддерживается */ } }
   let dimTimer = null;
