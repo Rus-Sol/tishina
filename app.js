@@ -390,8 +390,8 @@
           <button class="ghost bell-try" data-belltry="1">${AV_BELL}<span>Послушать звоночек</span></button>
         </div>
         ${why ? `<p class="sub" style="max-width:320px;margin:0 auto">Ты садишься, чтобы: <b style="color:var(--ink)">${why.t.toLowerCase()}</b></p>` : ''}
-        ${lockNote(`${S.locked ? 'В прошлый раз экран заблокировался, и звоночек не прозвенел. ' : ''}Положи телефон экраном вниз — экран сам притухнет, а звоночек прозвенит. Авиарежим можно.`)}
         <div>${btn('Начать', 'data-step="before"', 'btn--accent')}</div>
+        ${lockNote(`${S.locked ? 'В прошлый раз экран заблокировался, и звоночек не прозвенел. ' : ''}Положи телефон экраном вниз — экран сам притухнет, а звоночек прозвенит. Авиарежим можно.`)}
       </div>`;
     if (p.step === 'before') return `
       <div class="practice">
