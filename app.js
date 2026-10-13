@@ -556,8 +556,9 @@
     const c = whyCands().map((x) => x.id);
     S.top = c.length <= TOP ? c : S.top.filter((id) => c.includes(id));
     Store.save('top', S.top);
-    view.whyStep = c.length <= TOP ? 'note' : 'top';
+    if (c.length <= TOP) whyFinish(); else view.whyStep = 'top';
   }
+  function whyFinish() { Store.save('top', S.top); Sync.push('why', { top: S.top, why: S.why }, 'why'); haptic.ok(); view.whyStep = 'done'; }
   function whyAfterGroups() {
     if (!S.why.length) { toast('Отметь хотя бы одно'); view.whyG = 0; return; }
     view.whyWin = {};
@@ -570,7 +571,6 @@
     if (st === 'g') { if (view.whyG > 0) view.whyG -= 1; else view.whyStep = 'intro'; }
     else if (st === 'round') { if (view.whyR > 0) view.whyR -= 1; else lastG(); }
     else if (st === 'top') { if (S.why.length > WHY_LIST) lastR(); else lastG(); }
-    else if (st === 'note') { if (whyCands().length > TOP) view.whyStep = 'top'; else if (S.why.length > WHY_LIST) lastR(); else lastG(); }
   }
   const whyItem = (x, attr, on, icon, meta = true) => `<button class="item${attr === 'data-why' ? '' : ' item--top'}${on ? ' is-on' : ''}" ${attr}="${attr === 'data-win' ? `${x.gid}:${x.id}` : x.id}" aria-pressed="${on}">
       <span class="item__body"><span class="item__t">${x.t}</span><span class="item__p">${x.proof}</span>
@@ -614,23 +614,15 @@
       <div class="counter" id="why-counter"><span class="counter__n">Главных: <span class="num" id="top-n">${S.top.length}</span> из ${TOP}</span><span class="counter__dots">${Array.from({ length: TOP }, (_, i) => `<i class="${i < S.top.length ? 'is-on' : ''}"></i>`).join('')}</span></div>
       <div class="shell"><div class="core" style="padding:2px 16px">${cands.map((x) => whyItem(x, 'data-top', S.top.includes(x.id), I.star, false)).join('')}</div></div>
       <div class="section-gap"></div>
-      ${btn('Дальше', `data-whystep="note" ${S.top.length === TOP ? '' : 'disabled'}`, 'btn--full btn--accent')}
+      ${btn('Готово', `data-whydone="1" ${S.top.length === TOP ? '' : 'disabled'}`, 'btn--full btn--accent')}
       ${backLink}`;
     }
-    if (st === 'note') return `
-      <span class="eyebrow"><span class="dot"></span>Последний шаг</span>
-      <h1 class="title">Почему это важно именно тебе?</h1>
-      <p class="lead">Одна строка про самое главное. Её видишь только ты и Рустем.</p>
-      <textarea class="note" id="why-note" maxlength="300" placeholder="Например: хочу перестать срываться на сына — он этого не заслужил.">${esc(S.note || '')}</textarea>
-      <div class="section-gap"></div>
-      ${btn('Готово', 'data-whydone="1"', 'btn--full btn--accent')}
-      ${backLink}`;
     if (st === 'done') {
       const top = S.top.map(whyById).filter(Boolean);
       return `
       <span class="eyebrow"><span class="dot"></span>Моё зачем</span>
       <h1 class="title">Ты садишься, чтобы…</h1>
-      <div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${x.proof}</span></span></li>`).join('')}</ul>${S.note ? `<p class="sub" style="margin:4px 0 0">«${esc(S.note)}»</p>` : ''}</div></div>
+      <div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${x.proof}</span></span></li>`).join('')}</ul></div></div>
       <p class="sub" style="margin:14px 4px 0">Перед каждой практикой я напомню одно из них. Всего отмечено: <span class="num">${S.why.length}</span>.</p>
       <div class="section-gap"></div>
       ${btn('На главную', 'data-tab="today"', 'btn--full btn--accent')}
@@ -847,7 +839,7 @@
       return setTimeout(() => { if (view.whyR < whyRounds().length - 1) view.whyR += 1; else whyToTop(); render(true); }, 260);
     }
     if (d.whystep) { haptic.tap(); view.whyStep = d.whystep; return render(true); }
-    if (d.whydone) { Store.save('note', S.note); Store.save('top', S.top); Sync.push('why', { top: S.top, why: S.why, note: S.note }, 'why'); haptic.ok(); toast('Сохранено'); view.whyStep = 'done'; return render(true); }
+    if (d.whydone) { whyFinish(); return render(true); }
   });
 
   function updateWhy() {
@@ -856,7 +848,7 @@
     const n = document.getElementById('why-n'); if (n) n.textContent = S.why.length;
     const t = document.getElementById('top-n'); if (t) t.textContent = S.top.length;
     document.querySelectorAll('.counter__dots i').forEach((dot, i) => dot.classList.toggle('is-on', i < S.top.length));
-    document.querySelectorAll('[data-whystep="note"]').forEach((b) => { b.disabled = S.top.length !== TOP; });
+    document.querySelectorAll('[data-whydone]').forEach((b) => { b.disabled = S.top.length !== TOP; });
   }
 
   let noteTimer = null;
