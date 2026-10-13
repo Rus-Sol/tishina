@@ -475,13 +475,13 @@ input, textarea { font: inherit; color: inherit; }
 .row__day--icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- Моё зачем: два шага (отметить всё → выбрать 3 главных) ---------- */
-.keys { margin: 18px 0 0; padding: 16px 16px 6px; border-radius: 18px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent); }
-.keys__h { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; }
-.keys__i { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
-.keys__i svg { width: 13px; height: 13px; fill: none; stroke: var(--accent-ink); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.keys ol { list-style: none; counter-reset: k; margin: 0; padding: 0; }
-.keys li { counter-increment: k; position: relative; padding: 0 0 12px 30px; font-size: 15px; line-height: 1.45; color: var(--ink); }
-.keys li::before { content: counter(k); position: absolute; left: 0; top: 1px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--shell-ring); }
+.keys { margin: 20px 0 0; padding: 16px 16px 4px; border-radius: 20px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--shell-ring); }
+.keys__h { font-family: 'Caveat', cursive; font-size: 27px; font-weight: 700; line-height: 1.1; color: var(--ink); margin: 0 0 14px 2px; }
+.keys ol { list-style: none; margin: 0; padding: 0; }
+.keys li { display: flex; gap: 12px; align-items: flex-start; padding-bottom: 14px; }
+.keys__n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 600; }
+.keys li b { display: block; font-size: 15.5px; font-weight: 600; line-height: 1.3; color: var(--ink); }
+.keys li b + span { display: block; font-size: 14px; line-height: 1.4; color: var(--ink-2); margin-top: 1px; }
 .topback { display: inline-flex; align-items: center; gap: 4px; margin: -6px 0 10px -6px; padding: 8px 12px 8px 8px; border: 0; border-radius: 999px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--shell-ring); color: var(--ink); font: inherit; font-size: 15px; font-weight: 500; transition: transform 160ms var(--ease-out); }
 .topback:active { transform: scale(0.97); }
 .topback svg { width: 18px; height: 18px; transform: rotate(180deg); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
