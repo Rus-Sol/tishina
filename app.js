@@ -422,7 +422,7 @@
       ${(v.links || []).length ? `<div class="qa__links" style="margin:16px 0 0">${v.links.map(([t, u]) => `<button class="qa__link" data-url="${esc(u)}">${esc(t)} <span aria-hidden="true">↗</span></button>`).join('')}</div>` : ''}
       <div class="section-gap"></div>
       <p class="lesson-about">${v.about}</p>
-      ${(v.key || []).length ? `<div class="keys"><div class="keys__h"><span class="keys__i">${I.check}</span>Главное из урока</div><ol>${v.key.map((x) => `<li>${x}</li>`).join('')}</ol></div>` : ''}
+      ${v.key ? `<div class="keys"><div class="keys__h">${v.key.h}</div><ol>${v.key.items.map(([b, t], i) => `<li><span class="keys__n num">${i + 1}</span><span><b>${b}</b><span>${t}</span></span></li>`).join('')}</ol></div>` : ''}
       <div class="section-gap"></div>
       <div class="stack">
         ${btn(done ? 'Просмотрено' : 'Посмотрел — дальше', `data-watch="${v.id}" ${done ? 'disabled' : ''}`, 'btn--full')}
