@@ -486,21 +486,45 @@
         <label class="baseline" style="grid-template-columns:1fr;max-width:280px;margin:0 auto;text-align:left">${dq.q}<input class="num" inputmode="numeric" maxlength="3" data-dqnum="${dq.k}" placeholder="—" value="${esc(last[dq.k] || '')}"></label>`;
   }
 
+  /* ---------- Ответы: база с поиском (app/search.js + Fuse.js), «Спросить Рустема», запросы без ответа — боту ---------- */
+  let faqIx = null;
+  const faqIndex = () => (faqIx = faqIx || (window.TSearch ? window.TSearch.build(D.faq) : null));
+  const GO_LABEL = { practice: 'Открыть практику', why: 'Пройти «Моё зачем»', path: 'Открыть «Мой путь»', course: 'Открыть курс', howto: 'Показать шаги практики' };
+  const faqHits = (q) => { const ix = faqIndex(); return ix && q.length >= 2 ? window.TSearch.query(ix, q).slice(0, 8) : null; };
+  const qaRow = (f, i, marks) => `<div class="qa${view.faqOpen === i ? ' is-open' : ''}"><button class="qa__q" data-qa="${i}" aria-expanded="${view.faqOpen === i}"><span>${marks ? window.TSearch.mark(f.q, marks, esc) : esc(f.q)}</span>${I.plus}</button><div class="qa__a"><div><p>${esc(f.a)}</p>${f.go ? `<button class="link qa__go" data-faqgo="${f.go}">${GO_LABEL[f.go]} ${I.arrow}</button>` : ''}</div></div></div>`;
+  const qaList = (rows) => `<div class="shell"><div class="core" style="padding:4px 18px">${rows.join('')}</div></div>`;
+  function askBox(q, found) {
+    const sent = view.faqAsked === q;
+    if (found) return `<div class="ask ask--small">${sent ? '<span>Отправлено Рустему ✓</span>' : `<span>Не то?</span><button class="link" data-ask="1">Спросить Рустема ${I.arrow}</button>`}</div>`;
+    return `<div class="shell"><div class="core ask">
+      <span class="ask__i">${I.ask}</span>
+      <h2 class="h2">Такого ответа пока нет</h2>
+      <p class="sub">${sent ? 'Вопрос у Рустема. Ответ придёт в чат с ботом — обычно в течение дня.' : 'Отправь вопрос Рустему — он ответит в чат с ботом, обычно в течение дня.'}</p>
+      ${sent ? '' : btn('Спросить Рустема', 'data-ask="1"', 'btn--full btn--accent')}
+    </div></div>`;
+  }
+
   function screenAnswers() {
-    const topics = ['Все', ...new Set(D.faq.map((f) => f.t))];
-    const q = view.faqQuery.trim().toLowerCase();
-    const list = D.faq.map((f, i) => ({ ...f, i })).filter((f) => (view.faqTopic === 'Все' || f.t === view.faqTopic) && (!q || (f.q + ' ' + f.a).toLowerCase().includes(q)));
+    const q = view.faqQuery.trim();
+    const hits = faqHits(q);
+    const all = D.faq.map((f, i) => [f, i]);
+    let body;
+    if (hits) {
+      body = hits.length ? `<div class="label">Нашлось: <span class="num">${hits.length}</span></div>${qaList(hits.map((r) => qaRow(D.faq[r.i], r.i, r.marks)))}${askBox(q, true)}` : askBox(q, false);
+    } else if (view.faqTopic === 'Все') {
+      body = `<div class="label">Частые вопросы</div>${qaList(all.filter(([f]) => f.pop).map(([f, i]) => qaRow(f, i)))}`
+        + D.faqTopics.map((t) => { const rows = all.filter(([f]) => f.t === t && !f.pop); return rows.length ? `<div class="label">${t}</div>${qaList(rows.map(([f, i]) => qaRow(f, i)))}` : ''; }).join('');
+    } else {
+      body = qaList(all.filter(([f]) => f.t === view.faqTopic).map(([f, i]) => qaRow(f, i)));
+    }
     return `
       <span class="eyebrow"><span class="dot"></span>Ответы</span>
-      <h1 class="title">Что спрашивают новички</h1>
-      <p class="lead">Коротко и по делу. Не нашёл ответ — напиши Рустему.</p>
-      <label class="search">${I.search}<input id="faq-search" type="search" placeholder="Например: засыпаю, спина, слёзы" value="${esc(view.faqQuery)}" aria-label="Поиск по ответам"></label>
-      <div class="chips" role="group" aria-label="Темы">${topics.map((t) => `<button data-topic="${t}" aria-pressed="${view.faqTopic === t}">${t}</button>`).join('')}</div>
+      <h1 class="title">Ответы на вопросы</h1>
+      <p class="lead">${D.faq.length} ответов на то, что спрашивают новички. Пиши своими словами — поиск поймёт.</p>
+      <label class="search">${I.search}<input id="faq-search" type="search" enterkeyhint="search" autocomplete="off" placeholder="Например: засыпаю, болит спина, мысли скачут" value="${esc(view.faqQuery)}" aria-label="Поиск по ответам"></label>
+      ${q ? '' : `<div class="chips" role="group" aria-label="Темы">${['Все', ...D.faqTopics].map((t) => `<button data-topic="${t}" aria-pressed="${view.faqTopic === t}">${t}</button>`).join('')}</div>`}
       <div class="section-gap"></div>
-      <div class="shell"><div class="core" style="padding:4px 18px" id="faq-list">
-        ${list.length ? list.map((f) => `<div class="qa${view.faqOpen === f.i ? ' is-open' : ''}"><button class="qa__q" data-qa="${f.i}" aria-expanded="${view.faqOpen === f.i}"><span>${f.q}</span>${I.plus}</button><div class="qa__a"><div><p>${f.a}</p></div></div></div>`).join('') : '<div class="empty">Ничего не нашлось. Спроси в чате — ответим.</div>'}
-      </div></div>
-      <div class="contacts" style="margin-top:18px"><button class="chip press" data-url="${D.course.authorUrl}" style="padding:12px 16px;font-size:14px">Задать свой вопрос</button></div>`;
+      ${body}`;
   }
 
   function screenPath() {
@@ -811,6 +835,19 @@
       return;
     }
     if (d.topic) { haptic.tap(); view.faqTopic = d.topic; view.faqOpen = null; return render(); }
+    if (d.faqgo) {
+      haptic.tap();
+      if (d.faqgo === 'howto') { view.howto = true; go('today'); const h = document.querySelector('.howto'); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      return go(d.faqgo);
+    }
+    if (d.ask) {
+      const q = view.faqQuery.trim();
+      if (!q) return;
+      if (!inTelegram) { toast('Спросить можно в чате с ботом', 2600); return; }
+      Sync.push('ask', { q: q.slice(0, 500) }, `ask-${Date.now()}`);
+      view.faqAsked = q; haptic.ok(); toast('Отправлено Рустему', 2200);
+      return render();
+    }
     if (d.qa) {
       const i = Number(d.qa); view.faqOpen = view.faqOpen === i ? null : i; haptic.tap();
       document.querySelectorAll('.qa').forEach((q) => { const b = q.querySelector('[data-qa]'); const on = Number(b.dataset.qa) === view.faqOpen; q.classList.toggle('is-open', on); b.setAttribute('aria-expanded', on); });
@@ -853,8 +890,12 @@
   }
 
   let noteTimer = null;
+  let faqMissTimer = null;
   document.addEventListener('input', (e) => {
     if (e.target.id === 'faq-search') {
+      // запрос без ответа (после паузы в наборе) — тихо боту: так видно, чего не хватает в базе
+      clearTimeout(faqMissTimer);
+      faqMissTimer = setTimeout(() => { const q = view.faqQuery.trim(); const h = faqHits(q); if (q.length >= 4 && h && !h.length) Sync.push('miss', { q: q.slice(0, 120) }, `miss-${q.toLowerCase()}`); }, 1800);
       view.faqQuery = e.target.value; const pos = e.target.selectionStart;
       render(); const s = document.getElementById('faq-search'); s.focus(); s.setSelectionRange(pos, pos);
       document.querySelectorAll('.screen > *').forEach((x) => { x.style.animation = 'none'; x.style.opacity = 1; x.style.transform = 'none'; });
