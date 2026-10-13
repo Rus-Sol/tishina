@@ -614,9 +614,9 @@
 
       <div class="label">Точка отсчёта</div>
       <div class="shell"><div class="core">
-        <p class="sub" style="margin:0">Сколько раз ты сбился со счёта выдохов за минуту проверки в боте. В первый день и на седьмой — чем меньше, тем лучше.</p>
+        <p class="sub" style="margin:0">Сколько раз ты сбился со счёта выдохов за минуту проверки в боте. В начале курса и в конце — чем меньше, тем лучше.</p>
         <div class="baseline">
-          ${['base1', 'base7'].map((k, i) => `<label>День ${i ? 7 : 1}${(S.bsrc || {})[k] ? `<span class="base-val">${baseLabel(S[k])}</span>` : `<input class="num" inputmode="numeric" maxlength="3" data-base="${k}" value="${esc(S[k] || '')}" placeholder="—">`}</label>`).join('')}
+          ${['base1', 'base7'].map((k, i) => `<label>${i ? 'В конце' : 'В начале'}${(S.bsrc || {})[k] ? `<span class="base-val">${baseLabel(S[k])}</span>` : `<input class="num" inputmode="numeric" maxlength="3" data-base="${k}" value="${esc(S[k] || '')}" placeholder="—">`}</label>`).join('')}
         </div>
       </div></div>
 
@@ -748,7 +748,9 @@
     if (view.sub && view.sub.name === 'lesson') html = screenLesson(view.sub.param);
     else if (view.sub && view.sub.name === 'why') html = screenWhy();
     else html = { today: screenToday, course: screenCourse, practice: screenPractice, answers: screenAnswers, path: screenPath }[view.tab]();
-    $app.innerHTML = `<section class="screen">${html}</section>`;
+    // у вложенных экранов (урок, «Моё зачем») — заметная кнопка «Назад» вверху: кнопку в шапке Telegram легко не увидеть
+    const back = view.sub ? `<button class="topback" data-goback="1">${I.arrow}<span>Назад</span></button>` : '';
+    $app.innerHTML = `<section class="screen">${back}${html}</section>`;
     if (scrollTop) window.scrollTo(0, 0);
     initWheels();
     const running = view.tab === 'practice' && !view.sub && ['run', 'bell'].includes(view.practice.step);
@@ -944,6 +946,7 @@
     }
     if (d.whyg) { haptic.tap(); view.whyG = Number(d.whyg); view.whyStep = 'g'; return render(true); }
     if (d.whynext) { haptic.tap(); if (view.whyG < D.why.length - 1) view.whyG += 1; else whyAfterGroups(); return render(true); }
+    if (d.goback) { haptic.tap(); return go(view.tab); }
     if (d.whyback) { haptic.tap(); whyBack(); return render(true); }
     if (d.win) {
       const [gid, id] = d.win.split(':'); view.whyWin[gid] = id; haptic.soft();
