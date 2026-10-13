@@ -414,6 +414,7 @@
           : `<button class="video__frame" style="margin:0;width:100%;border:0" data-sendvideo="${v.id}" aria-label="Прислать видео в чат">${daisyOutline('video__daisy')}<span class="chip video__soon">Прислать видео в чат</span><span class="video__play">${I.play}</span></button>`}
       </div></div>
       ${v.src ? `<button class="link video__alt" data-sendvideo="${v.id}">Не грузится? Прислать видео в чат</button>` : ''}
+      ${(v.links || []).length ? `<div class="qa__links" style="margin:16px 0 0">${v.links.map(([t, u]) => `<button class="qa__link" data-url="${esc(u)}">${esc(t)} <span aria-hidden="true">↗</span></button>`).join('')}</div>` : ''}
       <div class="section-gap"></div>
       <p class="lesson-about">${v.about}</p>
       <div class="section-gap"></div>
