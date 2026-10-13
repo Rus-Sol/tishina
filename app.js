@@ -426,7 +426,7 @@
       <div class="section-gap"></div>
       <div class="stack">
         ${btn(done ? 'Просмотрено' : 'Посмотрел — дальше', `data-watch="${v.id}" ${done ? 'disabled' : ''}`, 'btn--full')}
-        ${v.id >= 1 ? btn('Перейти к практике', 'data-tab="practice"', 'btn--full btn--accent') : ''}
+        ${v.id >= 1 ? btn('Перейти к практике', 'data-tab="practice"', 'btn--full btn--accent') : S.top.length ? btn('▶️ Дальше: урок 1 · Как сесть и что делать', 'data-go="lesson:1"', 'btn--full btn--accent') : btn('Дальше: «Моё зачем» — 3 минуты', 'data-go="why"', 'btn--full btn--accent')}
       </div>`;
   }
 
@@ -440,14 +440,16 @@
     const i = view.howI; const s = D.howto[i]; const n = D.howto.length; const last = i === n - 1;
     return `
       ${qbar(i + 1, n)}
+      <button class="topback" data-howback="1">${I.arrow}<span>Назад</span></button>
       <span class="eyebrow"><span class="dot"></span>Перед первой практикой · шаг ${i + 1} из ${n}</span>
       <div class="howstep__img${s.img && !s.anim ? ' has-img' : ''}">${stepVisual(s)}<b class="hstep__n num">${i + 1}</b></div>
       <h1 class="title">${s.t}</h1>
+      <p class="sub" style="margin:0 0 8px">Пока просто прочитай — делать будешь в практике.</p>
       <p class="lead" style="margin-bottom:10px">${s.do}</p>
       <p class="sub"><span class="muted">Зачем:</span> ${s.why}</p>
       <div class="section-gap"></div>
       ${btn(last ? 'Понятно, начинаем' : 'Дальше', 'data-hownext="1"', 'btn--full btn--accent')}
-      <div class="howstep__nav">${i ? '<button class="ghost" data-howback="1">Назад</button>' : '<span></span>'}${last ? '' : '<button class="ghost" data-howskip="1">Пропустить</button>'}</div>`;
+      <div class="howstep__nav"><button class="ghost" data-howback="1">Назад</button>${last ? '' : '<button class="ghost" data-howskip="1">Пропустить</button>'}</div>`;
   }
 
   function screenPractice() {
@@ -500,8 +502,19 @@
         <p class="lead" style="margin:6px 0 0">${delta > 0 ? 'к спокойствию за одну практику' : delta === 0 ? 'Так тоже бывает. Практика засчитана' : 'Бывают и такие дни. Шаг всё равно сделан'}</p></div>
         <p class="sub" style="max-width:320px;margin:0 auto">Ещё один лепесток в твоей ромашке. Каждое «заметил и вернулся» — это подход.</p>
         ${dayQuestion()}
-        <div>${btn('Готово', 'data-tab="today"')}</div>
+        ${practiceNext()}
       </div>`;
+  }
+
+  // Что дальше после практики: первая — в чат выбрать время (бот уже спросил); есть открытый урок — он; иначе до завтра
+  function practiceNext() {
+    if (S.sessions.length === 1 && inTelegram && tg.initData && S.remind == null) return `<div class="stack" style="width:100%;max-width:340px;margin:0 auto">
+          ${btn('Выбрать время напоминания', 'data-closeapp="1"', 'btn--full btn--accent')}
+          <p class="sub" style="margin:0">Бот уже спросил в чате, когда тебе удобно садиться.</p></div>`;
+    const next = D.videos.find((v) => v.id > 0 && !S.watched.includes(v.id) && !isLocked(v, courseDay()));
+    if (next) return `<div class="stack" style="width:100%;max-width:340px;margin:0 auto">${btn(`▶️ Дальше: урок ${next.id} · ${next.title}`, `data-go="lesson:${next.id}"`, 'btn--full btn--accent')}<button class="ghost" data-tab="today">На главную</button></div>`;
+    const tomorrow = D.videos.find((v) => !S.watched.includes(v.id));
+    return `<div>${btn('Готово', 'data-tab="today"', 'btn--accent')}${tomorrow ? `<p class="sub" style="margin:10px 0 0">Завтра — урок ${tomorrow.id}. Бот напомнит.</p>` : ''}</div>`;
   }
 
   // Вопрос дня после практики: проверка навыка, который дал урок этого дня (день 1 — только «до/после»)
@@ -658,7 +671,21 @@
     Store.save('top', S.top);
     if (c.length <= TOP) whyFinish(); else view.whyStep = 'top';
   }
-  function whyFinish() { Store.save('top', S.top); Sync.push('why', { top: S.top, why: S.why }, 'why'); haptic.ok(); view.whyStep = 'done'; }
+  function whyFinish() {
+    Store.save('top', S.top); Sync.push('why', { top: S.top, why: S.why }, 'why'); haptic.ok(); view.whyStep = 'done';
+    // из бота и впервые — бот сам пришлёт урок 1, приложение закрываем, чтобы человек оказался в чате
+    view.whyClosing = !!(view.whyFromBot && view.whyFirst && inTelegram && tg.initData && !S.watched.includes(1));
+    if (view.whyClosing) whyCloseSoon();
+  }
+  function whyCloseSoon() {
+    const t0 = Date.now();
+    const tick = () => {
+      const sent = !Sync.queue().some((e) => e.id === 'why');
+      if (sent || Date.now() - t0 > 6000) return setTimeout(() => { try { tg.close(); } catch (err) { /* старый клиент */ } }, sent ? 1800 : 0);
+      Sync.flush(); setTimeout(tick, 400);
+    };
+    tick();
+  }
   function whyAfterGroups() {
     if (!S.why.length) { toast('Отметь хотя бы одно'); view.whyG = 0; return; }
     view.whyWin = {};
@@ -676,6 +703,7 @@
       <span class="item__body"><span class="item__t">${x.t}</span><span class="item__p">${proofHtml(x)}</span>
       ${meta ? `<span class="item__m"><span class="chip src-${x.src}">${D.srcLabel[x.src]}</span><span class="chip">${x.when}</span></span>` : ''}</span>
       <span class="heart">${icon}</span></button>`;
+  const topLabel = () => (S.top.length >= TOP ? 'Готово' : `Выбери ещё ${TOP - S.top.length}`);
   const backLink = '<div style="text-align:center;margin-top:8px"><button class="ghost" data-whyback="1">Назад</button></div>';
 
   function screenWhy() {
@@ -700,8 +728,8 @@
       return `
       ${qbar(view.whyR + 1, rs.length)}
       <span class="eyebrow"><span class="dot"></span>Почти готово · ${view.whyR + 1} из ${rs.length}</span>
-      <h1 class="title">${g.title}: что важнее?</h1>
-      <p class="lead">Ты отметил ${S.why.length} ${plural(S.why.length, 'пункт', 'пункта', 'пунктов')} — это хорошо. Теперь в каждой сфере выбери одно, самое важное. Остальные отметки сохранятся.</p>
+      <h1 class="title">${g.title}: выбери <u>одно</u>, самое важное</h1>
+      <p class="lead">Ты отметил ${S.why.length} ${plural(S.why.length, 'пункт', 'пункта', 'пунктов')} — это хорошо. Нажми на один пункт, и перейдём дальше. Остальные отметки сохранятся.</p>
       <div class="shell"><div class="core" style="padding:2px 16px">${items.map((x) => whyItem(x, 'data-win', view.whyWin[g.id] === x.id, I.star, false)).join('')}</div></div>
       ${backLink}`;
     }
@@ -710,23 +738,34 @@
       return `
       <span class="eyebrow"><span class="dot"></span>Почти готово</span>
       <h1 class="title">Выбери 3 самых главных</h1>
-      <p class="lead">О них я буду напоминать перед практикой.</p>
+      <p class="lead">Отметь ровно три — о них я буду напоминать перед практикой.</p>
       <div class="counter" id="why-counter"><span class="counter__n">Главных: <span class="num" id="top-n">${S.top.length}</span> из ${TOP}</span><span class="counter__dots">${Array.from({ length: TOP }, (_, i) => `<i class="${i < S.top.length ? 'is-on' : ''}"></i>`).join('')}</span></div>
       <div class="shell"><div class="core" style="padding:2px 16px">${cands.map((x) => whyItem(x, 'data-top', S.top.includes(x.id), I.star, false)).join('')}</div></div>
       <div class="section-gap"></div>
-      ${btn('Готово', `data-whydone="1" ${S.top.length === TOP ? '' : 'disabled'}`, 'btn--full btn--accent')}
+      ${btn(topLabel(), `data-whydone="1" ${S.top.length === TOP ? '' : 'disabled'}`, 'btn--full btn--accent')}
       ${backLink}`;
     }
     if (st === 'done') {
       const top = S.top.map(whyById).filter(Boolean);
+      const nextLesson = view.whyFirst ? D.videos.find((v) => v.id > 0 && !S.watched.includes(v.id)) : null;
+      const list = `<div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${proofHtml(x)}</span></span></li>`).join('')}</ul></div></div>`;
+      // 1) пришёл из бота впервые — урок 1 уже в чате, приложение закроется само
+      if (view.whyClosing) return `
+      <span class="eyebrow"><span class="dot"></span>Моё зачем · готово 🌿</span>
+      <h1 class="title">Урок 1 уже ждёт тебя в чате</h1>
+      <p class="lead">Сейчас вернёмся в чат с ботом: там видео «Как сесть и что делать», а сразу после него — твоя первая практика.</p>
+      ${list}
+      <div class="section-gap"></div>
+      ${btn('Перейти в чат к уроку 1', 'data-closeapp="1"', 'btn--full btn--accent')}`;
       return `
-      <span class="eyebrow"><span class="dot"></span>Моё зачем</span>
+      <span class="eyebrow"><span class="dot"></span>Моё зачем${view.whyFirst ? '' : ' · сохранено'}</span>
       <h1 class="title">Ты садишься, чтобы…</h1>
-      <div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${proofHtml(x)}</span></span></li>`).join('')}</ul></div></div>
+      ${list}
       <p class="sub" style="margin:14px 4px 0">Перед каждой практикой я напомню одно из них. Всего отмечено: <span class="num">${S.why.length}</span>.</p>
       <div class="section-gap"></div>
-      ${btn('На главную', 'data-tab="today"', 'btn--full btn--accent')}
-      <div style="text-align:center;margin-top:8px"><button class="ghost" data-whyg="0">Пройти тест заново</button></div>`;
+      ${nextLesson ? btn(`▶️ Дальше: урок ${nextLesson.id} · ${nextLesson.title}`, `data-go="lesson:${nextLesson.id}"`, 'btn--full btn--accent') : btn('На главную', 'data-tab="today"', 'btn--full btn--accent')}
+      ${nextLesson && nextLesson.id === 1 ? '<p class="sub" style="text-align:center;margin:10px 0 0">После него — твоя первая практика.</p>' : ''}
+      <div style="text-align:center;margin-top:8px">${nextLesson ? '<button class="ghost" data-tab="today">На главную</button>' : ''}<button class="ghost" data-whyg="0">Пройти тест заново</button></div>`;
     }
     // вступление: по центру экрана, коротко, кнопка внизу под большим пальцем
     return `<div class="whyin">
@@ -747,10 +786,14 @@
 
   /* ---------- Роутинг ---------- */
   const fmt = (ms) => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  // откуда пришли — чтобы «Назад» с первого шага пояснений вёл туда же (урок, главная…)
+  let prev = null;
+  function goPrev() { const p = prev || { tab: 'today', sub: null }; prev = null; view.tab = p.tab; view.sub = p.sub; render(true); }
   function go(target) {
     const [name, param] = String(target).split(':');
+    prev = { tab: view.tab, sub: view.sub };
     if (['today', 'course', 'practice', 'answers', 'path'].includes(name)) { view.tab = name; view.sub = null; }
-    else { view.sub = { name, param }; if (name === 'why') view.whyStep = S.top.length ? 'done' : 'intro'; }
+    else { view.sub = { name, param }; if (name === 'why') { view.whyStep = S.top.length ? 'done' : 'intro'; view.whyFirst = !S.top.length; view.whyFromBot = false; } }
     if (name === 'practice' && ['done'].includes(view.practice.step)) view.practice.step = 'setup';
     render(true);
   }
@@ -881,7 +924,7 @@
     if (d.start) { haptic.soft(); view.practice.step = 'before'; return go('practice'); }
     if (d.howto) { haptic.tap(); view.howto = !view.howto; return render(); }
     if (d.hownext) { haptic.tap(); if (view.howI < D.howto.length - 1) view.howI += 1; else { view.howDone = true; haptic.ok(); } return render(true); }
-    if (d.howback) { haptic.tap(); view.howI = Math.max(0, view.howI - 1); return render(true); }
+    if (d.howback) { haptic.tap(); if (view.howI > 0) { view.howI -= 1; return render(true); } return goPrev(); }
     if (d.howskip) { haptic.tap(); view.howDone = true; return render(true); }
     if (d.url) { haptic.tap(); return open(d.url); }
     if (d.min) { haptic.soft(); setDur(Number(d.min) * 60); if (document.querySelector('[data-wheel]')) { syncPresets(); wheelsTo(view.practice.sec); return; } return render(); }
@@ -894,6 +937,7 @@
     if (d.before) { haptic.tap(); view.practice.before = Number(d.before); awake(true); return setTimeout(startRun, 180); }
     if (d.after) { haptic.tap(); view.practice.after = Number(d.after); render(); return setTimeout(() => { finishPractice(); render(true); }, 220); }
     if (d.watch) { markWatched(Number(d.watch)); return render(); }
+    if (d.closeapp) { haptic.tap(); try { tg.close(); } catch (err) { /* старый клиент */ } return; }
     if (d.sendvideo) {
       haptic.soft();
       if (!inTelegram) return toast('Видео приходит в чат с ботом');
@@ -956,9 +1000,9 @@
       haptic.soft(); Store.save('top', S.top);
       return updateWhy();
     }
-    if (d.whyg) { haptic.tap(); view.whyG = Number(d.whyg); view.whyStep = 'g'; return render(true); }
+    if (d.whyg) { haptic.tap(); if (S.top.length) { view.whyFirst = false; view.whyFromBot = false; } view.whyG = Number(d.whyg); view.whyStep = 'g'; return render(true); }
     if (d.whynext) { haptic.tap(); if (view.whyG < D.why.length - 1) view.whyG += 1; else whyAfterGroups(); return render(true); }
-    if (d.goback) { haptic.tap(); return go(view.tab); }
+    if (d.goback) { haptic.tap(); if (view.sub && view.sub.name === 'why' && ['g', 'round', 'top'].includes(view.whyStep)) { whyBack(); return render(true); } return go(view.tab); }
     if (d.whyback) { haptic.tap(); whyBack(); return render(true); }
     if (d.win) {
       const [gid, id] = d.win.split(':'); view.whyWin[gid] = id; haptic.soft();
@@ -975,7 +1019,7 @@
     const n = document.getElementById('why-n'); if (n) n.textContent = S.why.length;
     const t = document.getElementById('top-n'); if (t) t.textContent = S.top.length;
     document.querySelectorAll('.counter__dots i').forEach((dot, i) => dot.classList.toggle('is-on', i < S.top.length));
-    document.querySelectorAll('[data-whydone]').forEach((b) => { b.disabled = S.top.length !== TOP; });
+    document.querySelectorAll('[data-whydone]').forEach((b) => { b.disabled = S.top.length !== TOP; b.firstElementChild.textContent = topLabel(); });
   }
 
   let noteTimer = null;
@@ -1055,7 +1099,7 @@
     if (Number(S.dur) >= 10) view.practice.sec = Number(S.dur);
     if ([5, 10, 15, 20].includes(Number(qs.get('min')))) view.practice.sec = Number(qs.get('min')) * 60;
     const startTab = qs.get('tab') || (inTelegram && tg.initDataUnsafe && tg.initDataUnsafe.start_param) || 'today';
-    if (startTab === 'why') { view.sub = { name: 'why' }; } else if (['today', 'course', 'practice', 'answers', 'path'].includes(startTab)) view.tab = startTab;
+    if (startTab === 'why') { view.sub = { name: 'why' }; view.whyFromBot = true; view.whyFirst = !S.top.length; } else if (['today', 'course', 'practice', 'answers', 'path'].includes(startTab)) view.tab = startTab;
     render(true);
   }
   boot();
