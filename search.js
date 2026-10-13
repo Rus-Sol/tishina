@@ -64,7 +64,8 @@
     const Fuse = root.Fuse || (typeof require === 'function' ? require('./vendor/fuse.min.js') : null);
     const synOf = new Map();
     SYN.forEach((g) => { const st = stems(g); st.forEach((s) => synOf.set(s, [...new Set([...(synOf.get(s) || []), ...st])])); });
-    const docs = faq.map((f, i) => ({ i, q: new Set(stems(f.q)), k: new Set(stems(f.k || '')), a: new Set(stems(f.a)), t: new Set(stems(f.t)) }));
+    const body = (f) => [f.a, f.short, f.why, [].concat(f.do || []).join(' '), f.story].filter(Boolean).join(' ');
+    const docs = faq.map((f, i) => ({ i, q: new Set(stems(f.q)), k: new Set(stems(f.k || '')), a: new Set(stems(body(f))), t: new Set(stems(f.t)) }));
     const vocab = [...new Set(docs.flatMap((d) => [...d.q, ...d.k, ...d.a, ...d.t]).concat([...synOf.keys()]))];
     const fuse = Fuse ? new Fuse(vocab, { includeScore: true, threshold: 0.34, minMatchCharLength: 3 }) : null;
     return { faq, docs, synOf, fuse };
