@@ -30,7 +30,7 @@
      в ключе лежит {"__chunks": n}, сами куски — в key__0 … key__{n-1}. Битое или неполное облако
      никогда не затирает данные: тогда берём копию с телефона. */
   const useCloud = inTelegram && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9');
-  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur', 'locked'];
+  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur', 'locked', 'bsrc'];
   const CHUNK = 4000;
   const Store = {
     pending() { try { return JSON.parse(localStorage.getItem('t__pending') || '[]'); } catch (e) { return []; } },
@@ -127,7 +127,7 @@
   };
 
   /* ---------- Состояние ---------- */
-  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null, locked: 0 };
+  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null, locked: 0, bsrc: {} };
   const view = { tab: 'today', sub: null, practice: { step: 'setup', sec: 600, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
   let lastPetals = 0;
 
@@ -527,6 +527,8 @@
       ${body}`;
   }
 
+  // так же, как в боте: 2.5 — это кнопка «2–3 раза», 4 — «4 и больше»
+  const baseLabel = (v) => ({ 0: 'ни разу', 1: '1 раз', 2.5: '2–3 раза', 4: '4 и больше' }[Number(v)] || `${v} ${plural(Number(v), 'раз', 'раза', 'раз')}`);
   function screenPath() {
     const n = S.sessions.length;
     const total = Math.max(14, Math.ceil(n / 7) * 7);
@@ -556,10 +558,9 @@
 
       <div class="label">Точка отсчёта</div>
       <div class="shell"><div class="core">
-        <p class="sub" style="margin:0">Сколько раз ты сбился со счёта выдохов за минуту проверки. В первый день и на седьмой — сравни: чем меньше, тем лучше.</p>
+        <p class="sub" style="margin:0">Сколько раз ты сбился со счёта выдохов за минуту проверки в боте. В первый день и на седьмой — чем меньше, тем лучше.</p>
         <div class="baseline">
-          <label>День 1<input class="num" inputmode="numeric" maxlength="3" data-base="base1" value="${esc(S.base1 || '')}" placeholder="—"></label>
-          <label>День 7<input class="num" inputmode="numeric" maxlength="3" data-base="base7" value="${esc(S.base7 || '')}" placeholder="—"></label>
+          ${['base1', 'base7'].map((k, i) => `<label>День ${i ? 7 : 1}${(S.bsrc || {})[k] ? `<span class="base-val">${baseLabel(S[k])}</span>` : `<input class="num" inputmode="numeric" maxlength="3" data-base="${k}" value="${esc(S[k] || '')}" placeholder="—">`}</label>`).join('')}
         </div>
       </div></div>
 
@@ -942,6 +943,11 @@
       KEYS.forEach((k) => Store.save(k, S[k]));
     }
     if (!S.start) { S.start = Date.now(); Store.save('start', S.start); }
+    // результат проверки из бота (ссылки бота несут b1/b7) — в «Точку отсчёта», без ручного ввода
+    ['b1', 'b7'].forEach((p) => {
+      const v = new URLSearchParams(location.search).get(p); const k = p === 'b1' ? 'base1' : 'base7';
+      if (v != null && v !== '' && Number.isFinite(Number(v)) && (String(S[k]) !== v || !(S.bsrc || {})[k])) { S[k] = v; S.bsrc = { ...(S.bsrc || {}), [k]: 1 }; Store.save(k, v); Store.save('bsrc', S.bsrc); }
+    });
     // список «зачем» обновлялся: отметки пунктов, которых больше нет, убираем
     const known = new Set(allWhy().map((x) => x.id));
     ['why', 'top'].forEach((k) => { const v = (S[k] || []).filter((id) => known.has(id)); if (v.length !== (S[k] || []).length) { S[k] = v; Store.save(k, v); } });
