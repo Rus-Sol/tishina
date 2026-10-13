@@ -500,6 +500,7 @@
     return `<p class="qa__short">${esc(f.short)}</p>
       ${f.why ? qaBlock('Почему так', `<p>${esc(f.why)}</p>`) : ''}
       ${dos.length ? qaBlock('Что делать', doHtml) : ''}
+      ${(f.help || []).length ? `<details class="qa__help"><summary>Телефоны помощи</summary>${f.help.map(([w, n, t]) => `<p><span>${esc(w)}</span><b>${esc(n)}</b><small>${esc(t)}</small></p>`).join('')}</details>` : ''}
       ${f.story ? qaBlock('Из опыта Рустема', `<p>${esc(f.story)}</p>`, ' qa__b--story') : ''}
       ${f.sci ? qaBlock('Что говорит наука', `<p>${esc(f.sci[0])} <span class="qa__src">${esc(f.sci[1])}</span></p>`, ' qa__b--sci') : ''}
       ${(f.links || []).length ? `<div class="qa__links">${f.links.map(([t, u]) => `<button class="qa__link" data-url="${esc(u)}">${esc(t)} <span aria-hidden="true">↗</span></button>`).join('')}</div>` : ''}
