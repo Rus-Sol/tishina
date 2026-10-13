@@ -362,6 +362,17 @@
       <p class="sub" style="margin:18px 4px 0">Дни 8–14 — без новых видео: держим серию, бот каждый день напомнит о практике.</p>`;
   }
 
+  function markWatched(id) {
+    if (S.watched.includes(id)) return;
+    S.watched.push(id); Store.save('watched', S.watched); Sync.push('watched', { n: id }, `w-${id}`);
+    haptic.ok(); toast(id < 7 ? 'Следующее видео открыто' : 'Отмечено');
+  }
+  // видео досмотрено до конца — отмечаем само (ended не всплывает, ловим на захвате)
+  document.addEventListener('ended', (e) => {
+    const id = e.target && e.target.dataset && e.target.dataset.vid;
+    if (id != null && !S.watched.includes(Number(id))) { markWatched(Number(id)); render(); }
+  }, true);
+
   function screenLesson(id) {
     const v = D.videos.find((x) => x.id === Number(id));
     const done = S.watched.includes(v.id);
@@ -370,8 +381,11 @@
       <h1 class="title">${v.title}</h1>
       <p class="lead num">${v.min} минут</p>
       <div class="shell"><div class="core" style="padding:8px">
-        <button class="video__frame" style="margin:0;width:100%;border:0" data-sendvideo="${v.id}" aria-label="Прислать видео в чат">${daisyOutline('video__daisy')}<span class="chip video__soon">Прислать видео в чат</span><span class="video__play">${I.play}</span></button>
+        ${v.src
+          ? `<video class="video__player" controls playsinline preload="metadata" poster="img/video${v.id}.jpg" src="${v.src}" data-vid="${v.id}"></video>`
+          : `<button class="video__frame" style="margin:0;width:100%;border:0" data-sendvideo="${v.id}" aria-label="Прислать видео в чат">${daisyOutline('video__daisy')}<span class="chip video__soon">Прислать видео в чат</span><span class="video__play">${I.play}</span></button>`}
       </div></div>
+      ${v.src ? `<button class="link video__alt" data-sendvideo="${v.id}">Не грузится? Прислать видео в чат</button>` : ''}
       <div class="section-gap"></div>
       <p class="lesson-about">${v.about}</p>
       <div class="section-gap"></div>
@@ -822,11 +836,7 @@
     }
     if (d.before) { haptic.tap(); view.practice.before = Number(d.before); awake(true); return setTimeout(startRun, 180); }
     if (d.after) { haptic.tap(); view.practice.after = Number(d.after); render(); return setTimeout(() => { finishPractice(); render(true); }, 220); }
-    if (d.watch) {
-      const id = Number(d.watch);
-      if (!S.watched.includes(id)) { S.watched.push(id); Store.save('watched', S.watched); Sync.push('watched', { n: id }, `w-${id}`); haptic.ok(); toast(id < 7 ? 'Следующее видео открыто' : 'Отмечено'); }
-      return render();
-    }
+    if (d.watch) { markWatched(Number(d.watch)); return render(); }
     if (d.sendvideo) {
       haptic.soft();
       if (!inTelegram) return toast('Видео приходит в чат с ботом');
