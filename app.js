@@ -349,15 +349,7 @@
 
       <div class="label">Курс · ${D.videos.length} видео</div>
       <div class="shell"><div class="core list" style="padding:6px 16px">${videoRows(day, true)}</div></div>
-
-      <div class="section-gap"></div>
-      <div class="shell"><div class="core list" style="padding:6px 16px">
-        <button class="row" data-url="${D.course.chatUrl}">
-          <span class="row__day row__day--icon">${I.chat}</span>
-          <span class="row__body"><span class="row__t">Рустем и чат</span><span class="row__s">Спросить, поделиться, держать серию вместе</span></span>
-          <span class="row__state">${I.arrow}</span>
-        </button>
-      </div></div>`;
+`;
   }
 
   function screenCourse() {
@@ -367,7 +359,7 @@
       <h1 class="title">7 дней тишины</h1>
       <p class="lead">8 коротких видео и по 10 минут практики в день. Новое видео приходит каждый день, а если хочется быстрее — следующее открывается сразу после предыдущего.</p>
       <div class="shell"><div class="core list" style="padding:6px 16px">${videoRows(day)}</div></div>
-      <p class="sub" style="margin:18px 4px 0">Дни 8–14 — без новых видео: держим серию вместе в чате.</p>`;
+      <p class="sub" style="margin:18px 4px 0">Дни 8–14 — без новых видео: держим серию, бот каждый день напомнит о практике.</p>`;
   }
 
   function screenLesson(id) {
