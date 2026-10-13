@@ -681,7 +681,14 @@
     const t0 = Date.now();
     const tick = () => {
       const sent = !Sync.queue().some((e) => e.id === 'why');
-      if (sent) return setTimeout(() => { try { tg.close(); } catch (err) { /* старый клиент */ } }, 1800);
+      if (sent) {
+        // обратный отсчёт: человек видит, что сейчас вернётся в чат, и успевает понять
+        let n = 4;
+        const show = () => { const el = document.getElementById('why-count'); if (el) el.textContent = `Возвращаю в чат через ${n}…`; };
+        show();
+        const iv = setInterval(() => { n -= 1; if (n > 0) return show(); clearInterval(iv); try { tg.close(); } catch (err) { /* старый клиент */ } }, 1000);
+        return;
+      }
       // бот не подтвердил (нет связи) — не закрываем в пустой чат, показываем урок здесь
       if (Date.now() - t0 > 6000) { view.whyClosing = false; return render(); }
       Sync.flush(); setTimeout(tick, 400);
@@ -758,7 +765,8 @@
       <p class="lead">Сейчас вернёмся в чат с ботом: там видео «Как сесть и что делать», а сразу после него — твоя первая практика.</p>
       ${list}
       <div class="section-gap"></div>
-      ${btn('Перейти в чат к уроку 1', 'data-closeapp="1"', 'btn--full btn--accent')}`;
+      ${btn('Перейти в чат к уроку 1', 'data-closeapp="1"', 'btn--full btn--accent')}
+      <p class="sub" id="why-count" style="text-align:center;margin:12px 0 0" aria-live="polite">Сохраняю…</p>`;
       return `
       <span class="eyebrow"><span class="dot"></span>Моё зачем${view.whyFirst ? '' : ' · сохранено'}</span>
       <h1 class="title">Ты садишься, чтобы…</h1>
