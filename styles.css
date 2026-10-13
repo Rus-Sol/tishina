@@ -664,3 +664,21 @@ html.is-dim .lock-note b { color: #fff; }
 
 /* Точка отсчёта: значение из бота — как в боте, без поля ввода */
 .base-val { display: flex; align-items: center; height: 48px; padding: 0 14px; border-radius: 14px; background: var(--accent-soft); color: var(--ink); font-size: 17px; font-weight: 600; }
+
+/* Ответ v3: короткий ответ, блоки, «Читай также» */
+.qa__a > div { color: var(--ink); }
+.qa__short { margin: 0 2px 14px; font-size: 16px; font-weight: 600; line-height: 1.45; color: var(--ink); }
+.qa__b { margin: 0 2px 14px; }
+.qa__h { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+.qa__b p, .qa__ol { margin: 0; font-size: 15px; line-height: 1.55; color: var(--ink-2); }
+.qa__ol { padding-left: 20px; display: grid; gap: 4px; }
+.qa__b--story { padding: 12px 14px; border-radius: 14px; background: var(--accent-soft); }
+.qa__b--story p { color: var(--ink); }
+.qa__b--sci p { font-size: 14px; }
+.qa__src { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; }
+.qa__links { display: grid; gap: 8px; margin: 2px 2px 16px; }
+.qa__link { text-align: left; padding: 12px 14px; border-radius: 14px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--shell-ring); font-size: 14.5px; font-weight: 500; line-height: 1.35; color: var(--ink); }
+.qa__see { margin: 6px 2px 18px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.qa__seebtn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; padding: 9px 0; font-size: 14.5px; font-weight: 500; color: var(--ink); }
+.qa__seebtn svg { flex: none; width: 15px; height: 15px; fill: none; stroke: var(--ink-3); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.qa__go { margin: 0 2px 16px; }
