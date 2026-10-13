@@ -30,7 +30,7 @@
      в ключе лежит {"__chunks": n}, сами куски — в key__0 … key__{n-1}. Битое или неполное облако
      никогда не затирает данные: тогда берём копию с телефона. */
   const useCloud = inTelegram && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9');
-  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur', 'locked', 'bsrc'];
+  const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur', 'locked', 'bsrc', 'remind', 'remindAt'];
   const CHUNK = 4000;
   const Store = {
     pending() { try { return JSON.parse(localStorage.getItem('t__pending') || '[]'); } catch (e) { return []; } },
@@ -127,7 +127,7 @@
   };
 
   /* ---------- Состояние ---------- */
-  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null, locked: 0, bsrc: {} };
+  const S = { start: null, why: [], top: [], note: '', sessions: [], watched: [], base1: '', base7: '', reset: '', dur: null, locked: 0, bsrc: {}, remind: null, remindAt: 0 };
   const view = { tab: 'today', sub: null, practice: { step: 'setup', sec: 600, before: null, after: null, startAt: 0, endAt: 0 }, faqTopic: 'Все', faqQuery: '', faqOpen: null, whyStep: 'intro', whyG: 0, whyR: 0, whyWin: {}, howto: false, howI: 0, howDone: false };
   let lastPetals = 0;
 
@@ -556,6 +556,7 @@
 
   // так же, как в боте: 2.5 — это кнопка «2–3 раза», 4 — «4 и больше»
   const baseLabel = (v) => ({ 0: 'ни разу', 1: '1 раз', 2.5: '2–3 раза', 4: '4 и больше' }[Number(v)] || `${v} ${plural(Number(v), 'раз', 'раза', 'раз')}`);
+  const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   function screenPath() {
     const n = S.sessions.length;
     const total = Math.max(14, Math.ceil(n / 7) * 7);
@@ -589,6 +590,12 @@
         <div class="baseline">
           ${['base1', 'base7'].map((k, i) => `<label>День ${i ? 7 : 1}${(S.bsrc || {})[k] ? `<span class="base-val">${baseLabel(S[k])}</span>` : `<input class="num" inputmode="numeric" maxlength="3" data-base="${k}" value="${esc(S[k] || '')}" placeholder="—">`}</label>`).join('')}
         </div>
+      </div></div>
+
+      <div class="label">Напоминание</div>
+      <div class="shell"><div class="core remind">
+        <label class="remind__row"><span>🔔 Бот напомнит в</span><input type="time" step="300" class="num" data-remind value="${hhmm(S.remind == null ? 540 : S.remind)}"></label>
+        <p class="sub" style="margin:8px 0 0">Нажми на время, чтобы поменять.</p>
       </div></div>
 
       <div class="label">Моё зачем</div>
@@ -939,6 +946,12 @@
   document.addEventListener('change', (e) => {
     const k = e.target.dataset.base;
     if (k && S[k] !== '') Sync.push(k, { v: Number(S[k]) }, `${k}-${S[k]}`);
+    if (e.target.dataset.remind != null && /^\d{1,2}:\d{2}/.test(e.target.value)) {
+      const [h, mi] = e.target.value.split(':').map(Number);
+      S.remind = h * 60 + mi; S.remindAt = Date.now(); Store.save('remind', S.remind); Store.save('remindAt', S.remindAt);
+      Sync.push('time', { h: S.remind / 60 }, `time-${S.remind}`);
+      haptic.ok(); toast(`Буду напоминать в ${h}:${String(mi).padStart(2, '0')}`);
+    }
   });
 
   document.addEventListener('visibilitychange', () => {
@@ -978,6 +991,8 @@
       const v = new URLSearchParams(location.search).get(p); const k = p === 'b1' ? 'base1' : 'base7';
       if (v != null && v !== '' && Number.isFinite(Number(v)) && (String(S[k]) !== v || !(S.bsrc || {})[k])) { S[k] = v; S.bsrc = { ...(S.bsrc || {}), [k]: 1 }; Store.save(k, v); Store.save('bsrc', S.bsrc); }
     });
+    const rm = Number(new URLSearchParams(location.search).get('rm'));
+    if (new URLSearchParams(location.search).has('rm') && rm >= 0 && rm < 1440 && Number(new URLSearchParams(location.search).get('rmt')) >= (S.remindAt || 0)) { S.remind = rm; Store.save('remind', rm); }
     // список «зачем» обновлялся: отметки пунктов, которых больше нет, убираем
     const known = new Set(allWhy().map((x) => x.id));
     ['why', 'top'].forEach((k) => { const v = (S[k] || []).filter((id) => known.has(id)); if (v.length !== (S[k] || []).length) { S[k] = v; Store.save(k, v); } });
