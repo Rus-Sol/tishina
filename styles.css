@@ -475,6 +475,19 @@ input, textarea { font: inherit; color: inherit; }
 .row__day--icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- Моё зачем: два шага (отметить всё → выбрать 3 главных) ---------- */
+.whyin { min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 172px); display: flex; flex-direction: column; text-align: center; }
+.whyin__body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 0 28px; }
+.whyin__body > *, .whyin__cta { opacity: 0; transform: translateY(8px); animation: rise 420ms var(--ease-out) forwards; }
+.whyin__body > :nth-child(2) { animation-delay: 50ms; } .whyin__body > :nth-child(3) { animation-delay: 100ms; }
+.whyin__body > :nth-child(4) { animation-delay: 150ms; } .whyin__body > :nth-child(n+5) { animation-delay: 200ms; } .whyin__cta { animation-delay: 260ms; }
+.whyin__mark { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); margin-bottom: 22px; }
+.whyin__mark svg { width: 30px; height: 30px; fill: var(--accent); }
+.whyin .title { margin: 14px 0 10px; }
+.whyin .lead { max-width: 330px; margin: 0 auto 20px; }
+.whyin__facts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.whyin__note { margin: 22px 0 0; font-size: 15px; font-weight: 500; color: var(--ink); }
+.whyin__cta .sub { margin: 10px 0 0; font-size: 13.5px; }
+@media (prefers-reduced-motion: reduce) { .whyin__body > *, .whyin__cta { animation: none; opacity: 1; transform: none; } }
 .steps { list-style: none; margin: -8px 0 22px; padding: 0; display: grid; gap: 10px; }
 .steps li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.45; }
 .steps b { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; background: var(--accent-soft); color: var(--ink); }
