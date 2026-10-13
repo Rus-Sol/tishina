@@ -224,7 +224,8 @@
   /* ---------- Хелперы разметки ---------- */
   const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const btn = (text, attrs = '', cls = '') => `<button class="btn ${cls}" ${attrs}><span>${text}</span><span class="btn__icon">${I.arrow}</span></button>`;
-  const allWhy = () => D.why.flatMap((g) => g.items.map(([id, t, src, proof, when]) => ({ id, t, src, proof, when, group: g.title, gid: g.id })));
+  const allWhy = () => D.why.flatMap((g) => g.items.map(([id, t, src, proof, when, care]) => ({ id, t, src, proof, when, care, group: g.title, gid: g.id })));
+  const proofHtml = (x) => `${x.proof}${x.care ? '<span class="item__care"> · не заменяет лечение</span>' : ''}`;
   const qbar = (k, n) => `<div class="qbar" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<i class="${i < k ? 'is-on' : ''}"></i>`).join('')}</div>`;
   const whyById = (id) => allWhy().find((x) => x.id === id);
   const mainIds = () => (S.top.length ? S.top : S.why);
@@ -573,7 +574,7 @@
     else if (st === 'top') { if (S.why.length > WHY_LIST) lastR(); else lastG(); }
   }
   const whyItem = (x, attr, on, icon, meta = true) => `<button class="item${attr === 'data-why' ? '' : ' item--top'}${on ? ' is-on' : ''}" ${attr}="${attr === 'data-win' ? `${x.gid}:${x.id}` : x.id}" aria-pressed="${on}">
-      <span class="item__body"><span class="item__t">${x.t}</span><span class="item__p">${x.proof}</span>
+      <span class="item__body"><span class="item__t">${x.t}</span><span class="item__p">${proofHtml(x)}</span>
       ${meta ? `<span class="item__m"><span class="chip src-${x.src}">${D.srcLabel[x.src]}</span><span class="chip">${x.when}</span></span>` : ''}</span>
       <span class="heart">${icon}</span></button>`;
   const backLink = '<div style="text-align:center;margin-top:8px"><button class="ghost" data-whyback="1">Назад</button></div>';
@@ -622,7 +623,7 @@
       return `
       <span class="eyebrow"><span class="dot"></span>Моё зачем</span>
       <h1 class="title">Ты садишься, чтобы…</h1>
-      <div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${x.proof}</span></span></li>`).join('')}</ul></div></div>
+      <div class="shell"><div class="core why-chosen"><ul>${top.map((x) => `<li>${I.star}<span>${x.t}<span class="item__p">${proofHtml(x)}</span></span></li>`).join('')}</ul></div></div>
       <p class="sub" style="margin:14px 4px 0">Перед каждой практикой я напомню одно из них. Всего отмечено: <span class="num">${S.why.length}</span>.</p>
       <div class="section-gap"></div>
       ${btn('На главную', 'data-tab="today"', 'btn--full btn--accent')}
@@ -900,6 +901,9 @@
       KEYS.forEach((k) => Store.save(k, S[k]));
     }
     if (!S.start) { S.start = Date.now(); Store.save('start', S.start); }
+    // список «зачем» обновлялся: отметки пунктов, которых больше нет, убираем
+    const known = new Set(allWhy().map((x) => x.id));
+    ['why', 'top'].forEach((k) => { const v = (S[k] || []).filter((id) => known.has(id)); if (v.length !== (S[k] || []).length) { S[k] = v; Store.save(k, v); } });
     lastPetals = S.sessions.length;
     Store.flush();
     window.addEventListener('online', () => { Store.flush(); Sync.flush(); });
