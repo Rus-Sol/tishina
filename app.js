@@ -681,7 +681,9 @@
     const t0 = Date.now();
     const tick = () => {
       const sent = !Sync.queue().some((e) => e.id === 'why');
-      if (sent || Date.now() - t0 > 6000) return setTimeout(() => { try { tg.close(); } catch (err) { /* старый клиент */ } }, sent ? 1800 : 0);
+      if (sent) return setTimeout(() => { try { tg.close(); } catch (err) { /* старый клиент */ } }, 1800);
+      // бот не подтвердил (нет связи) — не закрываем в пустой чат, показываем урок здесь
+      if (Date.now() - t0 > 6000) { view.whyClosing = false; return render(); }
       Sync.flush(); setTimeout(tick, 400);
     };
     tick();
