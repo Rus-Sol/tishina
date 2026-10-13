@@ -367,10 +367,38 @@
     S.watched.push(id); Store.save('watched', S.watched); Sync.push('watched', { n: id }, `w-${id}`);
     haptic.ok(); toast(id < 7 ? 'Следующее видео открыто' : 'Отмечено');
   }
-  // видео досмотрено до конца — отмечаем само (ended не всплывает, ловим на захвате)
+  /* Видео как на больших сервисах: просмотр засчитывается, когда реально посмотрено 80 % (перемотка не в счёт),
+     а при следующем открытии видео продолжается с того места, где остановился. События video не всплывают — ловим на захвате. */
+  const VP = { get(id) { try { return JSON.parse(localStorage.getItem(`t__vp${id}`) || '{}'); } catch (e) { return {}; } },
+    set(id, v) { try { localStorage.setItem(`t__vp${id}`, JSON.stringify(v)); } catch (e) { /* нет хранилища */ } } };
+  const vidOf = (e) => (e.target && e.target.dataset && e.target.dataset.vid != null ? Number(e.target.dataset.vid) : null);
+  function watchedNow(id) {
+    if (S.watched.includes(id)) return;
+    markWatched(id);
+    // без перерисовки: иначе плеер пересоздастся и видео остановится
+    const b = document.querySelector(`[data-watch="${id}"]`);
+    if (b) { b.disabled = true; b.textContent = 'Просмотрено'; }
+  }
+  document.addEventListener('loadedmetadata', (e) => {
+    const id = vidOf(e); if (id == null) return;
+    const v = e.target; const p = VP.get(id);
+    if (p.pos > 10 && p.pos < v.duration - 20) v.currentTime = p.pos;
+    v._last = v.currentTime;
+  }, true);
+  document.addEventListener('timeupdate', (e) => {
+    const id = vidOf(e); if (id == null) return;
+    const v = e.target; const step = v.currentTime - (v._last || 0); v._last = v.currentTime;
+    const p = v._p || (v._p = VP.get(id));
+    if (step > 0 && step < 1.5 * (v.playbackRate || 1) + 0.5) p.seen = (p.seen || 0) + step; // обычное воспроизведение; скачки перемотки не считаем
+    p.pos = v.currentTime;
+    if ((v._saved || 0) + 3 < Date.now() / 1000) { VP.set(id, p); v._saved = Date.now() / 1000; }
+    if (v.duration && p.seen >= v.duration * 0.8) watchedNow(id);
+  }, true);
+  document.addEventListener('pause', (e) => { const id = vidOf(e); if (id != null && e.target._p) VP.set(id, e.target._p); }, true);
   document.addEventListener('ended', (e) => {
-    const id = e.target && e.target.dataset && e.target.dataset.vid;
-    if (id != null && !S.watched.includes(Number(id))) { markWatched(Number(id)); render(); }
+    const id = vidOf(e); if (id == null) return;
+    const v = e.target; const p = v._p || VP.get(id); p.pos = 0; VP.set(id, p);
+    if (v.duration && (p.seen || 0) >= v.duration * 0.8) watchedNow(id);
   }, true);
 
   function screenLesson(id) {
