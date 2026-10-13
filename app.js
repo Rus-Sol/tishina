@@ -635,8 +635,13 @@
 
       <div class="label">Моё зачем</div>
       <div class="shell"><div class="core why-chosen">
-        ${chosen.length ? `<ul>${chosen.map((x) => `<li>${S.top.length ? I.star : I.heart}<span>${x.t}</span></li>`).join('')}</ul>${extra ? `<p class="sub" style="margin:2px 0 0">и ещё ${extra} отмечено</p>` : ''}${S.note ? `<p class="sub" style="margin:4px 0 0">«${esc(S.note)}»</p>` : ''}<button class="link" data-go="why">Изменить ${I.arrow}</button>` : `<p class="sub" style="margin:0 0 14px">Ты ещё не выбрал, зачем садишься.</p>${btn('Выбрать', 'data-go="why"', 'btn--full')}`}
-      </div></div>`;
+        ${chosen.length ? `<ul>${chosen.map((x) => `<li>${S.top.length ? I.star : I.heart}<span>${x.t}</span></li>`).join('')}</ul>${extra ? `<p class="sub" style="margin:2px 0 0">и ещё ${extra} отмечено</p>` : ''}<textarea id="why-note" rows="3" maxlength="600" placeholder="Что изменилось за эти дни? Запиши хоть одно — через месяц будет с чем сравнить" style="display:block;width:100%;box-sizing:border-box;margin:12px 0 4px;padding:10px 12px;border:1px solid rgba(128,128,128,.35);border-radius:12px;background:transparent;resize:vertical">${esc(S.note || '')}</textarea><button class="link" data-go="why">Изменить ${I.arrow}</button>` : `<p class="sub" style="margin:0 0 14px">Ты ещё не выбрал, зачем садишься.</p>${btn('Выбрать', 'data-go="why"', 'btn--full')}`}
+      </div></div>
+      ${D.course.channelUrl ? `<div class="label">Канал</div>
+      <div class="shell"><div class="core">
+        <p class="sub" style="margin:0 0 10px">В канале «Ушёл в мысли» рассказываю о практике глубже и отвечаю на вопросы.</p>
+        <div class="qa__links" style="margin:0"><button class="qa__link" data-url="${esc(D.course.channelUrl)}">Открыть канал <span aria-hidden="true">↗</span></button></div>
+      </div></div>` : ''}`;
   }
 
   // «Моё зачем» — тест: сфера за сферой → если отмечено много, по одному лучшему в каждой сфере → 3 главных → строка → итог
