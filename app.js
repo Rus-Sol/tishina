@@ -140,6 +140,8 @@
     if (forced >= 1) return forced;
     return Math.max(1, Math.floor((startOf(Date.now()) - startOf(S.start)) / DAY) + 1);
   }
+  // докуда дошёл по урокам: последнее просмотренное видео; смотрит в чате и не отмечает — тогда по календарю
+  const lessonNow = () => Math.min(7, Math.max(courseDay(), ...S.watched));
   // серия — дни с практикой; один пропущенный день её не рвёт, два подряд — рвут (правило из видео 7)
   function streak() {
     const days = new Set(S.sessions.map((s) => dayKey(s.t)));
@@ -304,7 +306,7 @@
     const st = streak();
     const why = mainIds().length ? whyById(mainIds()[(day - 1) % mainIds().length]) : null;
     const howOpen = view.howto;
-    const rules = D.rules.filter((r) => r.day <= day);
+    const rules = D.rules.filter((r) => r.day <= lessonNow());
     const rulesLeft = D.rules.length - rules.length;
     const firstTime = day === 1 && !S.watched.includes(1) && !S.sessions.length;
 
@@ -420,6 +422,7 @@
       ${(v.links || []).length ? `<div class="qa__links" style="margin:16px 0 0">${v.links.map(([t, u]) => `<button class="qa__link" data-url="${esc(u)}">${esc(t)} <span aria-hidden="true">↗</span></button>`).join('')}</div>` : ''}
       <div class="section-gap"></div>
       <p class="lesson-about">${v.about}</p>
+      ${(v.key || []).length ? `<div class="keys"><div class="keys__h"><span class="keys__i">${I.check}</span>Главное из урока</div><ol>${v.key.map((x) => `<li>${x}</li>`).join('')}</ol></div>` : ''}
       <div class="section-gap"></div>
       <div class="stack">
         ${btn(done ? 'Просмотрено' : 'Посмотрел — дальше', `data-watch="${v.id}" ${done ? 'disabled' : ''}`, 'btn--full')}
@@ -511,7 +514,7 @@
       opts: ['заметить мысль и вернуться', 'мысль прошла мимо', 'отпустить напряжение', 'подождать, не почесаться', 'стало чуть тише'] },
   };
   function dayQuestion() {
-    const day = courseDay();
+    const day = S.watched.includes(7) ? 8 : lessonNow(); // вопрос — к последнему уроку, а не к номеру дня
     if (day < 2) return '';
     const dq = DAYQ[day] || DAYQ[2];
     const last = S.sessions[S.sessions.length - 1] || {};
