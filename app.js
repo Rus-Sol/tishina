@@ -25,9 +25,13 @@
     play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>',
   };
 
-  /* ---------- Хранилище: Telegram CloudStorage, вне Telegram — localStorage ---------- */
+  /* ---------- Хранилище: Telegram CloudStorage, вне Telegram — localStorage ----------
+     В облаке одно значение — до 4096 символов. Длинное (история практик) делим на куски:
+     в ключе лежит {"__chunks": n}, сами куски — в key__0 … key__{n-1}. Битое или неполное облако
+     никогда не затирает данные: тогда берём копию с телефона. */
   const useCloud = inTelegram && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9');
   const KEYS = ['start', 'why', 'top', 'note', 'sessions', 'watched', 'base1', 'base7', 'reset', 'dur', 'locked'];
+  const CHUNK = 4000;
   const Store = {
     pending() { try { return JSON.parse(localStorage.getItem('t__pending') || '[]'); } catch (e) { return []; } },
     setPending(list) { try { localStorage.setItem('t__pending', JSON.stringify([...new Set(list)])); } catch (e) { /* нет хранилища */ } },
@@ -38,31 +42,64 @@
         tg.CloudStorage.getItems(KEYS, (err, values) => {
           if (err || !values) return resolve(local);
           const pend = Store.pending();
-          // что не успело уйти в облако (например, практика в авиарежиме) — берём с телефона
-          resolve(Object.fromEntries(KEYS.map((k) => [k, pend.includes(k) || values[k] == null || values[k] === '' ? local[k] : safeParse(values[k])])));
+          const out = {}; const chunked = [];
+          KEYS.forEach((k) => {
+            // что не успело уйти в облако (например, практика в авиарежиме) — берём с телефона
+            if (pend.includes(k) || values[k] == null || values[k] === '') { out[k] = local[k]; return; }
+            const v = safeParse(values[k]);
+            if (v && typeof v === 'object' && !Array.isArray(v) && v.__chunks > 0) chunked.push([k, v.__chunks]);
+            else out[k] = Store.pick(k, v, local[k]);
+          });
+          if (!chunked.length) return resolve(out);
+          const names = chunked.flatMap(([k, n]) => Array.from({ length: n }, (_, i) => `${k}__${i}`));
+          tg.CloudStorage.getItems(names, (e2, parts) => {
+            chunked.forEach(([k, n]) => {
+              const raw = e2 || !parts ? '' : Array.from({ length: n }, (_, i) => parts[`${k}__${i}`] || '').join('');
+              out[k] = Store.pick(k, safeParse(raw), local[k]);
+            });
+            resolve(out);
+          });
         });
       });
+    },
+    // облако или телефон: битое облако — телефон; история практик только растёт — берём ту, где записей больше
+    pick(k, cloud, local) {
+      if (cloud == null) return local;
+      if (k === 'sessions' && Array.isArray(cloud) && Array.isArray(local) && local.length > cloud.length) return local;
+      return cloud;
     },
     local() {
       const out = {};
       KEYS.forEach((k) => { try { out[k] = safeParse(localStorage.getItem('t_' + k)); } catch (e) { out[k] = null; } });
       return out;
     },
+    cloudSet(key, raw, done) {
+      if (raw.length <= CHUNK) { tg.CloudStorage.setItem(key, raw, (err, ok) => done(!err && ok)); return; }
+      const parts = [];
+      for (let i = 0; i < raw.length; i += CHUNK) parts.push(raw.slice(i, i + CHUNK));
+      let left = parts.length; let fail = false;
+      // сначала куски, потом заголовок — пока куски не записаны, читается прежняя версия
+      parts.forEach((part, i) => tg.CloudStorage.setItem(`${key}__${i}`, part, (err, ok) => {
+        if (err || !ok) fail = true;
+        left -= 1;
+        if (left) return;
+        if (fail) { done(false); return; }
+        tg.CloudStorage.setItem(key, JSON.stringify({ __chunks: parts.length }), (e2, ok2) => done(!e2 && ok2));
+      }));
+    },
     save(key, value) {
       const raw = JSON.stringify(value);
       try { localStorage.setItem('t_' + key, raw); } catch (e) { /* приватный режим — живём в памяти */ }
       if (!useCloud) return;
       Store.setPending([...Store.pending(), key]);
-      tg.CloudStorage.setItem(key, raw.slice(0, 4096), (err, ok) => {
-        if (!err && ok) Store.setPending(Store.pending().filter((k) => k !== key));
-      });
+      Store.cloudSet(key, raw, (ok) => { if (ok) Store.setPending(Store.pending().filter((k) => k !== key)); });
     },
     flush() {
       if (!useCloud || !navigator.onLine) return;
       Store.pending().forEach((k) => {
         let raw = null; try { raw = localStorage.getItem('t_' + k); } catch (e) { /* нет */ }
         if (raw == null) return;
-        tg.CloudStorage.setItem(k, raw.slice(0, 4096), (err, ok) => { if (!err && ok) Store.setPending(Store.pending().filter((x) => x !== k)); });
+        Store.cloudSet(k, raw, (ok) => { if (ok) Store.setPending(Store.pending().filter((x) => x !== k)); });
       });
     },
   };
