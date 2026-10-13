@@ -652,3 +652,12 @@ html.is-dim .lock-note b { color: #fff; }
 
 /* медицинская тема — тихая пометка */
 .item__care { color: var(--ink-3); font-size: 12.5px; }
+
+/* Ответы: подсветка совпадений, переход, «Спросить Рустема» */
+.qa__q mark { background: var(--accent-soft); color: inherit; border-radius: 4px; padding: 0 2px; }
+.qa__go { margin: -8px 2px 18px; font-size: 14px; }
+.ask { display: grid; gap: 10px; justify-items: start; }
+.ask__i { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; background: var(--accent-soft); }
+.ask__i svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ask .sub { margin: 0 0 6px; }
+.ask--small { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; font-size: 14px; color: var(--ink-3); }
