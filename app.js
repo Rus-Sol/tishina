@@ -140,11 +140,14 @@
     if (forced >= 1) return forced;
     return Math.max(1, Math.floor((startOf(Date.now()) - startOf(S.start)) / DAY) + 1);
   }
+  // серия — дни с практикой; один пропущенный день её не рвёт, два подряд — рвут (правило из видео 7)
   function streak() {
     const days = new Set(S.sessions.map((s) => dayKey(s.t)));
-    let n = 0; let t = startOf(Date.now());
-    if (!days.has(dayKey(t))) t -= DAY; // серия не сгорает до конца сегодняшнего дня
-    while (days.has(dayKey(t))) { n += 1; t -= DAY; }
+    let n = 0; let gap = 0; let t = startOf(Date.now());
+    if (!days.has(dayKey(t))) t -= DAY; // сегодня ещё не вечер — не считаем пропуском
+    for (let i = 0; i < 400 && gap < 2; i += 1, t -= DAY) {
+      if (days.has(dayKey(t))) { n += 1; gap = 0; } else gap += 1;
+    }
     return n;
   }
   const practicedToday = () => S.sessions.some((s) => dayKey(s.t) === dayKey(Date.now()));
