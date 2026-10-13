@@ -5,8 +5,6 @@ window.T_DATA = {
     name: 'ТИШИНА',
     days: 7,
     supportDays: 14,
-    chatUrl: 'https://t.me/', // TODO: ссылка на общий чат
-    authorUrl: 'https://t.me/', // TODO: личка Рустема
     botUrl: 'https://t.me/tishina_start_bot',
     apiUrl: 'https://n8n.alviana.art/webhook/tishina-app', // события для бота: практика, просмотр, «зачем», счёт выдохов
   },
