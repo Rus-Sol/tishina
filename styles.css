@@ -482,9 +482,9 @@ input, textarea { font: inherit; color: inherit; }
 .keys__n { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 13px; font-weight: 600; }
 .keys li b { display: block; font-size: 15.5px; font-weight: 600; line-height: 1.3; color: var(--ink); }
 .keys li b + span { display: block; font-size: 14px; line-height: 1.4; color: var(--ink-2); margin-top: 1px; }
-.topback { display: inline-flex; align-items: center; gap: 4px; margin: -6px 0 10px -6px; padding: 8px 12px 8px 8px; border: 0; border-radius: 999px; background: var(--shell); box-shadow: inset 0 0 0 1px var(--shell-ring); color: var(--ink); font: inherit; font-size: 15px; font-weight: 500; transition: transform 160ms var(--ease-out); }
-.topback:active { transform: scale(0.97); }
-.topback svg { width: 18px; height: 18px; transform: rotate(180deg); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.topback { display: inline-flex; align-items: center; gap: 2px; margin: -8px 0 6px -10px; padding: 8px 10px 8px 6px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); font: inherit; font-size: 14px; font-weight: 500; transition: transform 160ms var(--ease-out), background-color 200ms ease; }
+.topback:active { transform: scale(0.96); background: var(--shell); }
+.topback svg { width: 16px; height: 16px; transform: rotate(180deg); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .whyin { min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 172px); display: flex; flex-direction: column; text-align: center; }
 .whyin__body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px 0 28px; }
 .whyin__body > *, .whyin__cta { opacity: 0; transform: translateY(8px); animation: rise 420ms var(--ease-out) forwards; }
