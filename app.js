@@ -176,7 +176,7 @@
     clearTimeout(toast.t);
     toast.t = setTimeout(() => $toast.classList.remove('is-on'), ms);
   }
-  function open(url) { if (inTelegram && /^https:\/\/t\.me\//.test(url)) tg.openTelegramLink(url); else window.open(url, '_blank'); }
+  function open(url) { if (inTelegram && /^https:\/\/t\.me\//.test(url)) tg.openTelegramLink(url); else if (inTelegram && tg.openLink) tg.openLink(url); else window.open(url, '_blank'); }
 
   /* ---------- Звоночек: мягкий синтез, без файлов ---------- */
   let audio = null;
@@ -491,7 +491,22 @@
   const faqIndex = () => (faqIx = faqIx || (window.TSearch ? window.TSearch.build(D.faq) : null));
   const GO_LABEL = { practice: 'Открыть практику', why: 'Пройти «Моё зачем»', path: 'Открыть «Мой путь»', course: 'Открыть курс', howto: 'Показать шаги практики' };
   const faqHits = (q) => { const ix = faqIndex(); return ix && q.length >= 2 ? window.TSearch.query(ix, q).slice(0, 8) : null; };
-  const qaRow = (f, i, marks) => `<div class="qa${view.faqOpen === i ? ' is-open' : ''}"><button class="qa__q" data-qa="${i}" aria-expanded="${view.faqOpen === i}"><span>${marks ? window.TSearch.mark(f.q, marks, esc) : esc(f.q)}</span>${I.plus}</button><div class="qa__a"><div><p>${esc(f.a)}</p>${f.go ? `<button class="link qa__go" data-faqgo="${f.go}">${GO_LABEL[f.go]} ${I.arrow}</button>` : ''}</div></div></div>`;
+  const faqById = (id) => D.faq.findIndex((f) => f.id === id);
+  const qaBlock = (h, body, cls = '') => `<div class="qa__b${cls}"><div class="qa__h">${h}</div>${body}</div>`;
+  function qaBody(f) {
+    const dos = [].concat(f.do || []);
+    const doHtml = dos.length > 1 ? `<ol class="qa__ol">${dos.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : dos.length ? `<p>${esc(dos[0])}</p>` : '';
+    const see = (f.see || []).map(faqById).filter((j) => j >= 0);
+    return `<p class="qa__short">${esc(f.short)}</p>
+      ${f.why ? qaBlock('Почему так', `<p>${esc(f.why)}</p>`) : ''}
+      ${dos.length ? qaBlock('Что делать', doHtml) : ''}
+      ${f.story ? qaBlock('Из опыта Рустема', `<p>${esc(f.story)}</p>`, ' qa__b--story') : ''}
+      ${f.sci ? qaBlock('Что говорит наука', `<p>${esc(f.sci[0])} <span class="qa__src">${esc(f.sci[1])}</span></p>`, ' qa__b--sci') : ''}
+      ${(f.links || []).length ? `<div class="qa__links">${f.links.map(([t, u]) => `<button class="qa__link" data-url="${esc(u)}">${esc(t)} <span aria-hidden="true">↗</span></button>`).join('')}</div>` : ''}
+      ${f.go ? `<button class="link qa__go" data-faqgo="${f.go}">${GO_LABEL[f.go]} ${I.arrow}</button>` : ''}
+      ${see.length ? `<div class="qa__see"><div class="qa__h">Читай также</div>${see.map((j) => `<button class="qa__seebtn" data-see="${j}"><span>${esc(D.faq[j].q)}</span>${I.arrow}</button>`).join('')}</div>` : ''}`;
+  }
+  const qaRow = (f, i, marks) => `<div class="qa${view.faqOpen === i ? ' is-open' : ''}" id="qa-${i}"><button class="qa__q" data-qa="${i}" aria-expanded="${view.faqOpen === i}"><span>${marks ? window.TSearch.mark(f.q, marks, esc) : esc(f.q)}</span>${I.plus}</button><div class="qa__a"><div>${view.faqOpen === i ? qaBody(f) : ''}</div></div></div>`;
   const qaList = (rows) => `<div class="shell"><div class="core" style="padding:4px 18px">${rows.join('')}</div></div>`;
   function askBox(q, found) {
     const sent = view.faqAsked === q;
@@ -510,7 +525,12 @@
     const all = D.faq.map((f, i) => [f, i]);
     let body;
     if (hits) {
-      body = hits.length ? `<div class="label">Нашлось: <span class="num">${hits.length}</span></div>${qaList(hits.map((r) => qaRow(D.faq[r.i], r.i, r.marks)))}${askBox(q, true)}` : askBox(q, false);
+      const shown = new Set(hits.map((r) => r.i));
+      const more = [...new Set(hits.slice(0, 3).flatMap((r) => (D.faq[r.i].see || []).map(faqById)))].filter((j) => j >= 0 && !shown.has(j)).slice(0, 3);
+      const pop = all.filter(([f, i]) => f.pop && !shown.has(i)).slice(0, 3);
+      body = hits.length
+        ? `<div class="label">Нашлось: <span class="num">${hits.length}</span></div>${qaList(hits.map((r) => qaRow(D.faq[r.i], r.i, r.marks)))}${more.length ? `<div class="label">Возможно, тебе будет интересно</div>${qaList(more.map((j) => qaRow(D.faq[j], j)))}` : ''}${askBox(q, true)}`
+        : `${askBox(q, false)}<div class="label">Частые вопросы</div>${qaList(pop.map(([f, i]) => qaRow(f, i)))}`;
     } else if (view.faqTopic === 'Все') {
       body = `<div class="label">Частые вопросы</div>${qaList(all.filter(([f]) => f.pop).map(([f, i]) => qaRow(f, i)))}`
         + D.faqTopics.map((t) => { const rows = all.filter(([f]) => f.t === t && !f.pop); return rows.length ? `<div class="label">${t}</div>${qaList(rows.map(([f, i]) => qaRow(f, i)))}` : ''; }).join('');
@@ -520,7 +540,7 @@
     return `
       <span class="eyebrow"><span class="dot"></span>Ответы</span>
       <h1 class="title">Ответы на вопросы</h1>
-      <p class="lead">${D.faq.length} ответов на то, что спрашивают новички. Пиши своими словами — поиск поймёт.</p>
+      <p class="lead">${D.faq.length} ответов на то, что спрашивают новички. Пиши своими словами, поиск поймёт.</p>
       <label class="search">${I.search}<input id="faq-search" type="search" enterkeyhint="search" autocomplete="off" placeholder="Например: засыпаю, болит спина, мысли скачут" value="${esc(view.faqQuery)}" aria-label="Поиск по ответам"></label>
       ${q ? '' : `<div class="chips" role="group" aria-label="Темы">${['Все', ...D.faqTopics].map((t) => `<button data-topic="${t}" aria-pressed="${view.faqTopic === t}">${t}</button>`).join('')}</div>`}
       <div class="section-gap"></div>
@@ -849,8 +869,15 @@
       view.faqAsked = q; haptic.ok(); toast('Отправлено Рустему', 2200);
       return render();
     }
+    if (d.see) {
+      const j = Number(d.see); haptic.tap();
+      view.faqQuery = ''; view.faqTopic = D.faq[j].t; view.faqOpen = j; render();
+      const el = document.getElementById(`qa-${j}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     if (d.qa) {
       const i = Number(d.qa); view.faqOpen = view.faqOpen === i ? null : i; haptic.tap();
+      document.querySelectorAll('.qa').forEach((q) => { const k = Number(q.querySelector('[data-qa]').dataset.qa); const box = q.querySelector('.qa__a > div'); if (k === view.faqOpen && !box.innerHTML.trim()) box.innerHTML = qaBody(D.faq[k]); });
       document.querySelectorAll('.qa').forEach((q) => { const b = q.querySelector('[data-qa]'); const on = Number(b.dataset.qa) === view.faqOpen; q.classList.toggle('is-open', on); b.setAttribute('aria-expanded', on); });
       return;
     }
