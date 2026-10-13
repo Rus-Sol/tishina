@@ -716,13 +716,21 @@
       ${btn('На главную', 'data-tab="today"', 'btn--full btn--accent')}
       <div style="text-align:center;margin-top:8px"><button class="ghost" data-whyg="0">Пройти тест заново</button></div>`;
     }
-    return `
-      <span class="eyebrow"><span class="dot"></span>Моё зачем · ${W.time}</span>
-      <h1 class="title">${W.title}</h1>
-      <p class="lead">${W.text}</p>
-      <ol class="steps">${W.steps.map((x, i) => `<li><b class="num">${i + 1}</b><span>${x}</span></li>`).join('')}</ol>
-      <div class="legend-src"><span class="chip src-r">Исследование — проверили учёные</span><span class="chip src-p">Пишут люди — из тысяч отзывов</span><span class="chip src-a">Опыт Рустема</span></div>
-      ${btn(S.why.length ? 'Продолжить тест' : 'Начать тест', 'data-whyg="0"', 'btn--full btn--accent')}`;
+    // вступление: по центру экрана, коротко, кнопка внизу под большим пальцем
+    return `<div class="whyin">
+      <div class="whyin__body">
+        <span class="whyin__mark">${I.heart}</span>
+        <span class="eyebrow"><span class="dot"></span>Моё зачем</span>
+        <h1 class="title">${W.title}</h1>
+        <p class="lead">${W.text}</p>
+        <div class="whyin__facts">${W.facts.map((x) => `<span class="chip">${x}</span>`).join('')}</div>
+        <p class="whyin__note">${W.note}</p>
+      </div>
+      <div class="whyin__cta">
+        ${btn(S.why.length ? 'Продолжить тест' : 'Узнать своё зачем', 'data-whyg="0"', 'btn--full btn--accent')}
+        <p class="sub">${W.after}</p>
+      </div>
+    </div>`;
   }
 
   /* ---------- Роутинг ---------- */
