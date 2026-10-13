@@ -661,3 +661,6 @@ html.is-dim .lock-note b { color: #fff; }
 .ask__i svg { width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .ask .sub { margin: 0 0 6px; }
 .ask--small { display: flex; gap: 8px; align-items: center; justify-content: center; margin-top: 14px; font-size: 14px; color: var(--ink-3); }
+
+/* Точка отсчёта: значение из бота — как в боте, без поля ввода */
+.base-val { display: flex; align-items: center; height: 48px; padding: 0 14px; border-radius: 14px; background: var(--accent-soft); color: var(--ink); font-size: 17px; font-weight: 600; }
