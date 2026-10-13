@@ -649,3 +649,6 @@ html.is-dim .clock { color: #fff; }
 .lock-note b + span { display: block; font-size: 14px; color: var(--ink-2); line-height: 1.45; margin-top: 3px; }
 html.is-dim .screen .practice > .lock-note { opacity: 0.32; filter: grayscale(1); }
 html.is-dim .lock-note b { color: #fff; }
+
+/* медицинская тема — тихая пометка */
+.item__care { color: var(--ink-3); font-size: 12.5px; }
